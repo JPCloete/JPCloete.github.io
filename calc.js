@@ -18,7 +18,7 @@ var unitInterval = {
     count: { 
         initialValue: 10,
         value: 10, //based on z's fraction value
-        rateOfChange: 2
+        rateOfChange: 1.5
     },
     pxPerUnit: 0
 }
