@@ -252,25 +252,36 @@ function clearCanvas() {
 }
 
 function intToIntRounder(num, rounder) {
-    let tempNum = num;
     if(Math.sign(rounder) == -1) {
         return num;
     }
+    var tempExponent = null; //variable used if exponent is negative
     var remainder = num % rounder;
     if(Math.sign(remainder) == -1 && Math.abs(remainder) < rounder / 2) {
         remainder = 10 - remainder;
     }
+    if(Math.sign(unitInterval.exponent) == -1) {
+        tempExponent = unitInterval.exponent * -1;
+        num = num * 10 ** tempExponent;
+        rounder = rounder * 10 ** tempExponent;
+    }
     if(remainder < rounder / 2){
-        while(tempNum % rounder != 0) {
-            tempNum = Math.floor(tempNum - 0.01);
+        while(num % rounder != 0) {
+            num = Math.floor(num - 0.01);
         }
-        return tempNum;
+        if(tempExponent != null) {
+            return num * 10 ** unitInterval.exponent;
+        }
+        return num;
     }
     else {
-        while(tempNum % rounder != 0) {
-            tempNum = Math.ceil(tempNum + 0.01);
+        while(num % rounder != 0) {
+            num = Math.ceil(num + 0.01);
         }
-        return tempNum;
+        if(tempExponent != null) {
+            return num * 10 ** unitInterval.exponent;
+        }
+        return num;
     }
 }
 
