@@ -83,43 +83,49 @@ function renderGrid() {
     const roundedY =  intToIntRounder(coordinates.y, unit);
     const xOffset = (roundedX - coordinates.x) + coordinates.x;
     const yOffset = (roundedY - coordinates.y) + coordinates.y;
-    var tempX;
-    var tempY;
     var i = 0;
     while(i <= (unitInterval.count.value / 2) + 1) {
-        tempX = xOffset + (unit * i);
-        tempY =  yOffset + (unit * i);
-        var xPositiveCoordinates = calculatePxFromCoordinates(tempX, coordinates.y);
-        var yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, tempY);
-        tempX = xOffset - (unit * i);
-        tempY = yOffset - (unit * i);
-        var xNegativeCoordinates = calculatePxFromCoordinates(tempX, coordinates.y);
-        var yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, tempY);
-        if(yPositiveCoordinates == null || i == 0) {
-            //do nothing
-        } 
-        else {
-            drawLine(0, windowDimensions.width, yPositiveCoordinates[1] , yPositiveCoordinates[1], 1, 'black');
-        }            
-        if(yNegativeCoordinates == null) {
-            //do nothing
-        }
-        else {
-            drawLine(0, windowDimensions.width, yNegativeCoordinates[1] , yNegativeCoordinates[1], 1, 'black');
-        }
-        if(xPositiveCoordinates == null || i == 0) {
-            //do nothing
-        } 
-        else {
-            drawLine(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height);
-        }
-        if(xNegativeCoordinates == null) {
-            
-        }
-        else {
-            drawLine(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height);
-        }
+        renderXAxis(i, xOffset, unit);
+        renderYAxis(i, yOffset, unit);
         i++;
+    }
+}
+
+function renderXAxis(index, offset, unit) {
+    var x = offset + (unit * index); //positive x value(s)
+    var xPositiveCoordinates = calculatePxFromCoordinates(x, coordinates.y);
+    x = offset - (unit * index); //negative x value(s)
+    var xNegativeCoordinates = calculatePxFromCoordinates(x, coordinates.y);
+    if(xPositiveCoordinates == null || index == 0) {
+        //do nothing
+    } 
+    else {
+        drawLine(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, 1, 'black');
+    }
+    if(xNegativeCoordinates == null) {
+        //do nothing   
+    }
+    else {
+        drawLine(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, 1, 'black');
+    }
+}
+
+function renderYAxis(index, offset, unit) {
+    var y = offset + (unit * index); //positive x value(s)
+    var yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, y);
+    y = offset - (unit * index); //negative x value(s)
+    var yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, y);
+    if(yPositiveCoordinates == null || index == 0) {
+        //do nothing
+    } 
+    else {
+        drawLine(0, windowDimensions.width, yPositiveCoordinates[1] , yPositiveCoordinates[1], 1, 'black');
+    }
+    if(yNegativeCoordinates == null) {
+        //do nothing   
+    }
+    else {
+        drawLine(0, windowDimensions.width, yNegativeCoordinates[1] , yNegativeCoordinates[1], 1, 'black');
     }
 }
 
