@@ -14,11 +14,11 @@ var coordinates = {
 
 var unitInterval = {
     base: 0,
-    exponent: 0, //10 is squared by exponent property
+    exponent: 0, //10 is squared by this exponent property
     count: { 
         initialValue: 10,
         value: 10, //based on z's fraction value
-        rateOfChange: 0.75
+        rateOfChange: 15
     },
     pxPerUnit: 0
 }
@@ -39,8 +39,9 @@ var canvas = {
 //calculates initial values and draws grid.
 window.onload = () => {
     calculateIntervalBase();
-    unitInterval.pxPerUnit = windowDimensions.width / (unitInterval.count.value * unitInterval.base * 10 ** unitInterval.exponent);
-    drawGrid();
+    var deltaXUnits = unitInterval.count.value * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
+    unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
+    renderGrid();
 }
 
 //fires dragEvent;
@@ -52,13 +53,13 @@ document.onmousedown = () => {
 function dragEvent(e) {
     e = e || window.event;
     e.preventDefault();
-    posX = e.clientX;
-    posY = e.clientY;
+    posX = e.clientX; //browser's x pixels
+    posY = e.clientY; //browser's y pixels
     document.onmouseup = () => { //clears event after mouse button has been released
         document.onmouseup = null;
         document.onmousemove = null;
     }
-    document.onmousemove = (e) => {
+    document.onmousemove = (e) => { //drag party of drag event ;)
         posXDifference = e.clientX - posX;
         posYDifference = e.clientY - posY;
         if(Math.abs(posXDifference) + Math.abs(posYDifference) > 5) { //makes rerendering less frequent to improve performance
@@ -67,26 +68,60 @@ function dragEvent(e) {
             if(currentCoordinates != null && prevCoordinates != null) {
                 calculateDragNewMdpt(prevCoordinates[1], currentCoordinates[1], prevCoordinates[0], currentCoordinates[0]);
             }
+            renderGrid();
             dragEvent(e);
         }
     }
 }
 
-
-document.addEventListener('wheel', (e) => { 
-    if(e.deltaY == 100) { //deltaY = 100 if mouseWheelUp; deltaY = -100 if mouseWheelDown
-        coordinates.z.fraction++;
-        handleZFractionLoop();
-        calculateIntervalBase();
+function renderGrid() {
+    setCanvasDimensions();
+    clearCanvas();
+    const tenthPower = 10 ** unitInterval.exponent
+    const unit = unitInterval.base * tenthPower;
+    const roundedX = intToIntRounder(coordinates.x, unit);
+    const roundedY =  intToIntRounder(coordinates.y, unit);
+    const xOffset = (roundedX - coordinates.x) + coordinates.x;
+    const yOffset = (roundedY - coordinates.y) + coordinates.y;
+    var tempX;
+    var tempY;
+    var i = 0;
+    while(i <= (unitInterval.count.value / 2) + 1) {
+        tempX = xOffset + (unit * i);
+        tempY =  yOffset + (unit * i);
+        var xPositiveCoordinates = calculatePxFromCoordinates(tempX, coordinates.y);
+        var yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, tempY);
+        tempX = xOffset - (unit * i);
+        tempY = yOffset - (unit * i);
+        var xNegativeCoordinates = calculatePxFromCoordinates(tempX, coordinates.y);
+        var yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, tempY);
+        if(yPositiveCoordinates == null || i == 0) {
+            //do nothing
+        } 
+        else {
+            drawLine(0, windowDimensions.width, yPositiveCoordinates[1] , yPositiveCoordinates[1], 1, 'black');
+        }            
+        if(yNegativeCoordinates == null) {
+            //do nothing
+        }
+        else {
+            drawLine(0, windowDimensions.width, yNegativeCoordinates[1] , yNegativeCoordinates[1], 1, 'black');
+        }
+        if(xPositiveCoordinates == null || i == 0) {
+            //do nothing
+        } 
+        else {
+            drawLine(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height);
+        }
+        if(xNegativeCoordinates == null) {
+            
+        }
+        else {
+            drawLine(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height);
+        }
+        i++;
     }
-    else {
-        coordinates.z.fraction--;
-        handleZFractionLoop();
-        calculateIntervalBase();
-    }
-    unitInterval.pxPerUnit = windowDimensions.width / (unitInterval.count.value * unitInterval.base * 10 ** unitInterval.exponent);
-});
-
+}
 
 function calculateCoordinatesFromPx(x, y) {
     var mdptX = windowDimensions.width / 2;
@@ -122,20 +157,39 @@ function calculateDragNewMdpt(y2, y1, x2, x1) {
     var x = x2 - x1;
     coordinates.y = coordinates.y + y;
     coordinates.x = coordinates.x + x;
-    console.log(coordinates.x + ', ' + coordinates.y);
 }
+
+//1.Increment z.fraction depending on zoomin / -out
+//2.handle zoomin / -out looping with handleZFractionLoop function eg -> 7.9 => 8.0(zoomout) || 91.0 => 90.9(zoomin)
+//3.calculate the base of the interval based on remainder
+//4.If remainder is 0 or 2 calculate the exponent of the interval
+//5.Set pxPerUnit value(VERY IMPORTANT!!!)
+document.addEventListener('wheel', (e) => { 
+    if(e.deltaY == 100) { //deltaY = 100 if mouseWheelUp; deltaY = -100 if mouseWheelDown
+        coordinates.z.fraction++;
+        handleZFractionLoop();
+    }
+    else {
+        coordinates.z.fraction--;
+        handleZFractionLoop();
+    }
+    var deltaXUnits = unitInterval.count.value * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
+    unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
+    renderGrid();
+});
 
 function handleZFractionLoop() {
     if(coordinates.z.fraction == 10) { //handles zoom out looping
         coordinates.z.base++;
         coordinates.z.fraction = 0;
-        unitInterval.count.value = unitInterval.count.initialValue + coordinates.z.fraction * unitInterval.count.rateOfChange; //causes fractal effect when zooming out
+        calculateIntervalBase();
     }
     else if(coordinates.z.fraction == -1) { //handles zoom in looping
         coordinates.z.base--;
         coordinates.z.fraction = 9;
-        unitInterval.count.value = unitInterval.count.initialValue + coordinates.z.fraction * unitInterval.count.rateOfChange; //causes fractal effect when zooming in 
+        calculateIntervalBase();
     }
+    unitInterval.count.value = unitInterval.count.initialValue + coordinates.z.fraction * unitInterval.count.rateOfChange; //causes fractal effect when zooming out
 }
 
 function calculateIntervalBase() {
@@ -143,14 +197,14 @@ function calculateIntervalBase() {
     switch (zBaseRemainder) {
         case 0:
             unitInterval.base = 1;
-            calculateIntervalExponent(zBaseRemainder); //when moving from interval base of 5 to 1
+            calculateIntervalExponent(zBaseRemainder); //when moving from interval base of 5 -> 1
             break;
         case 1:
             unitInterval.base = 2;
             break;
         case 2:
             unitInterval.base = 5;
-            calculateIntervalExponent(zBaseRemainder); //when moving from interval base of 1 to 5
+            calculateIntervalExponent(zBaseRemainder); //when moving from interval base of 1 -> 5
             break;
         default:
             //do nothings
@@ -158,13 +212,10 @@ function calculateIntervalBase() {
 }
 
 function calculateIntervalExponent(remainder) {
+    //remainder is minused to "round" to the 1st factor of 3 below the current base.
+    //the case above is only necessary when base is moving from 1 -> 5
     var defaultZDifference = coordinates.z.base - coordinates.z.initialBase - remainder;
     unitInterval.exponent = defaultZDifference / 3; 
-}
-
-
-function calculateIntervalCount() {
-    unitInterval.count.value = unitInterval.count.initialValue + (roundNumber(coordinates.z.fraction * unitInterval.count.rateOfChange, 2));
 }
 
 function setCanvasDimensions() {
@@ -175,13 +226,13 @@ function setCanvasDimensions() {
 window.addEventListener('resize', () => {
     windowDimensions.width = window.innerWidth;
     windowDimensions.height = window.innerHeight;
-    redrawGrid();
+    setCanvasDimensions();
+    renderGrid();
 });
 
 function drawLine(x1, x2, y1, y2, lineWidth, lineColor) {
     const ctx = canvas.getCtx();
     ctx.beginPath();
-    ctx.translate(0.5, 0.5); //used to hack canvas pixel calculation clown fiesta.
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.lineWidth = lineWidth + 0.5;
@@ -189,28 +240,31 @@ function drawLine(x1, x2, y1, y2, lineWidth, lineColor) {
     ctx.stroke();
 }
 
-function drawGridMainAxes() {
-    drawLine((windowDimensions.width / 2), (windowDimensions.width / 2),  0, windowDimensions.height , 1, 'black'); //y-axis (y = 0)
-    drawLine(0, windowDimensions.width,  (windowDimensions.height / 2), (windowDimensions.height / 2) , 1, 'black'); //x-axis (x = 0)
-}
-
-function drawGrid() {
-    setCanvasDimensions();
-    drawGridMainAxes();
-}
-
-function redrawGrid() {
+function clearCanvas() {
     const ctx = canvas.getCtx();
-    ctx.clearRect(0, 0, canvas.htmlElement.width, canvas.htmlElement.height); //easy way to clear canvas.
-    drawGrid();
+    ctx.clearRect(0, 0, windowDimensions.width, windowDimensions.height); //easy way to clear canvas.
 }
 
-
-function roundNumber(num, positionCount) { //to round to a certain position the number has to be multiplied and then divided after rounding by the same number.
-    var positionValue = 1; 
-    for(index = 0; index < positionCount; index++) {
-        positionValue = positionValue * 10;
+function intToIntRounder(num, rounder) {
+    let tempNum = num;
+    if(Math.sign(rounder) == -1) {
+        return num;
     }
-    return Math.round(num * positionValue) / positionValue;
+    var remainder = num % rounder;
+    if(Math.sign(remainder) == -1 && Math.abs(remainder) < rounder / 2) {
+        remainder = 10 - remainder;
+    }
+    if(remainder < rounder / 2){
+        while(tempNum % rounder != 0) {
+            tempNum = Math.floor(tempNum - 0.01);
+        }
+        return tempNum;
+    }
+    else {
+        while(tempNum % rounder != 0) {
+            tempNum = Math.ceil(tempNum + 0.01);
+        }
+        return tempNum;
+    }
 }
 
