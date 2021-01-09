@@ -223,8 +223,6 @@ function setCanvasDimensions() {
 }
 
 window.addEventListener('resize', () => {
-    windowDimensions.width = window.innerWidth;
-    windowDimensions.height = window.innerHeight;
     setCanvasDimensions();
     renderGrid();
 });
@@ -245,21 +243,12 @@ function clearCanvas() {
 }
 
 function roundToInterval(num, interval) {
-    var isFloat = false; //used as flag and checks at the end to reverse inverted exponent
-    if (interval < 1) { //handles floats by inverting exponent
-        num = num * 10 ** (unitInterval.exponent * -1); 
-        interval = interval * 10 ** (unitInterval.exponent * -1);
-        isFloat = true;
-    }
     var remainder = num % interval;
     if(remainder >= interval / 2) {
         num = num + (interval - remainder);
     }
     else {
         num = num - remainder;
-    }
-    if(isFloat) {
-        num = num * 10 ** (unitInterval.exponent);
     }
     return num;
 }
