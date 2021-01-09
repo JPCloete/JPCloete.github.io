@@ -175,6 +175,7 @@ document.addEventListener('wheel', (e) => {
     var deltaXUnits = unitInterval.count.value * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
     unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
     renderGrid();
+    console.log(unitInterval.exponent);
 });
 
 function handleZFractionLoop() {
@@ -244,34 +245,22 @@ function clearCanvas() {
 }
 
 function roundToInterval(num, interval) {
-    if (Math.sign(interval) == -1) {
-        return num;
+    var isFloat = false; //used as flag and checks at the end to reverse inverted exponent
+    if (interval < 1) { //handles floats by inverting exponent
+        num = num * 10 ** (unitInterval.exponent * -1); 
+        interval = interval * 10 ** (unitInterval.exponent * -1);
+        isFloat = true;
     }
-    var tempExponent = null; //variable used if exponent is negative
     var remainder = num % interval;
-    if (Math.sign(remainder) == -1 && Math.abs(remainder) < interval / 2) { //handles negative signs which is inverted for math.ceil and math.floor(i don't want the inverted thingies)
-        remainder = 10 - remainder;
+    if(remainder >= interval / 2) {
+        num = num + (interval - remainder);
     }
-    if (interval < 1) { //handles floats by rounding interval and num up to integer 
-        tempExponent = unitInterval.exponent * -1;
-        num = num * 10 ** tempExponent;
-        interval = interval * 10 ** tempExponent;
+    else {
+        num = num - remainder;
     }
-    if (remainder < interval / 2) {
-        while (num % interval != 0) {
-            num = Math.floor(num - 0.01);
-        }
-        if (tempExponent != null) {
-            return num * 10 ** unitInterval.exponent; //float(integer now) taken back to float after being rounded
-        }
-        return num;
-    } else {
-        while (num % interval != 0) {
-            num = Math.ceil(num + 0.01);
-        }
-        if (tempExponent != null) {
-            return num * 10 ** unitInterval.exponent; //float(integer now) taken back to float after being rounded
-        }
-        return num;
+    if(isFloat) {
+        num = num * 10 ** (unitInterval.exponent);
     }
+    return num;
 }
+
