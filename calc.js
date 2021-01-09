@@ -18,7 +18,7 @@ var unitInterval = {
     count: {
         initialValue: 10,
         value: 10, //based on z's fraction value
-        rateOfChange: 1.5
+        rateOfChange: 0.7
     },
     pxPerUnit: 0
 }
@@ -84,44 +84,91 @@ function renderGrid() {
     const xOffset = (roundedX - coordinates.x) + coordinates.x;
     const yOffset = (roundedY - coordinates.y) + coordinates.y;
     var i = 0;
-    while (i <= (unitInterval.count.value / 2) + 1) {
-        renderXAxis(i, xOffset, interval);
-        renderYAxis(i, yOffset, interval);
+    while (i <= (unitInterval.count.value / 2)) {
+        renderXAxis(i, xOffset);
+        renderYAxis(i, yOffset);
         i++;
     }
 }
 
-function renderXAxis(index, offset, interval) {
+function renderXAxis(index, offset) {
+    const tenthPower = 10 ** unitInterval.exponent
+    const interval = unitInterval.base * tenthPower;
     var x = offset + (interval * index); //positive x value(s)
     var xPositiveCoordinates = calculatePxFromCoordinates(x, coordinates.y);
     x = offset - (interval * index); //negative x value(s)
     var xNegativeCoordinates = calculatePxFromCoordinates(x, coordinates.y);
-    if (xPositiveCoordinates == null || index == 0) {
+    if(index == 0) {
+        renderSubAxis(xPositiveCoordinates, true, true);
+    }
+    if (xPositiveCoordinates == null) {
         //do nothing
     } else {
         drawLine(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, 1, 'black');
+        renderSubAxis(xPositiveCoordinates, true, true);
     }
     if (xNegativeCoordinates == null) {
         //do nothing   
     } else {
         drawLine(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, 1, 'black');
+        renderSubAxis(xNegativeCoordinates, false, true);
     }
 }
 
-function renderYAxis(index, offset, interval) {
+function renderYAxis(index, offset) {
+    const tenthPower = 10 ** unitInterval.exponent
+    const interval = unitInterval.base * tenthPower;
     var y = offset + (interval * index); //positive x value(s)
     var yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, y);
     y = offset - (interval * index); //negative x value(s)
     var yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, y);
-    if (yPositiveCoordinates == null || index == 0) {
+    if (yPositiveCoordinates == null) {
         //do nothing
     } else {
-        drawLine(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], 1, 'black');
+        drawLine(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], 1, '#404040');
+        renderSubAxis(yPositiveCoordinates, true, false);
     }
     if (yNegativeCoordinates == null) {
         //do nothing   
     } else {
-        drawLine(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], 1, 'black');
+        drawLine(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], 1, '#404040');
+        renderSubAxis(yNegativeCoordinates, false, false);
+    }
+}
+
+function renderSubAxis(coordinates, isPositive, isXAxis) {
+    const tenthPower = 10 ** unitInterval.exponent
+    const interval = unitInterval.base * tenthPower;
+    var subInterval;
+    var i = 1;
+    var subCoordinate;
+    if(interval % 2) {
+        subInterval = 4;
+    } else {
+        subInterval = 5;
+    }
+    if(isXAxis) {
+        while(i < subInterval) {
+            subCoordinate = ((interval * unitInterval.pxPerUnit) / subInterval) * i;
+            if(isPositive) {
+                subCoordinate = coordinates[0] + subCoordinate;
+            } else {
+                subCoordinate = coordinates[0] - subCoordinate;
+            }
+            drawLine(subCoordinate, subCoordinate, 0, windowDimensions.height, 1, 'red') 
+            i++;
+        }
+    } else {
+        while(i < subInterval) {
+            subCoordinate = ((interval * unitInterval.pxPerUnit) / subInterval) * i;
+            if(isPositive) {
+                subCoordinate = coordinates[1] + subCoordinate;
+            } else {
+                subCoordinate = coordinates[1] - subCoordinate;
+            }
+            drawLine(0, windowDimensions.width, subCoordinate, subCoordinate, 1, 'red');
+            i++;
+        }
     }
 }
 
