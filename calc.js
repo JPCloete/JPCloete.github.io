@@ -38,15 +38,21 @@ var canvas = {
 
 //calculates initial values and draws grid.
 window.onload = () => {
-    calculateIntervalBase();
-    var deltaXUnits = unitInterval.count.value * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
-    unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
+    gridSetUp();
     renderGrid();
 }
 
 //fires dragEvent;
 document.onmousedown = () => {
     dragEvent();
+}
+
+function gridSetUp() {
+    windowDimensions.width = window.innerWidth;
+    windowDimensions.height = window.innerHeight;
+    calculateIntervalBase();
+    var deltaXUnits = unitInterval.count.value * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
+    unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
 }
 
 //custom event(hold mouse button 1 and drag)
@@ -98,19 +104,19 @@ function renderXAxis(index, offset) {
     var xPositiveCoordinates = calculatePxFromCoordinates(x, coordinates.y);
     x = offset - (interval * index); //negative x value(s)
     var xNegativeCoordinates = calculatePxFromCoordinates(x, coordinates.y);
-    if(index == 0) {
+    if (index == 0) {
         renderSubAxis(xPositiveCoordinates, true, true);
     }
     if (xPositiveCoordinates == null) {
         //do nothing
     } else {
-        drawLine(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, 1, 'black');
+        drawLine(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, 1, '#303030');
         renderSubAxis(xPositiveCoordinates, true, true);
     }
     if (xNegativeCoordinates == null) {
         //do nothing   
     } else {
-        drawLine(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, 1, 'black');
+        drawLine(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, 1, '#303030');
         renderSubAxis(xNegativeCoordinates, false, true);
     }
 }
@@ -125,13 +131,13 @@ function renderYAxis(index, offset) {
     if (yPositiveCoordinates == null) {
         //do nothing
     } else {
-        drawLine(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], 1, '#404040');
+        drawLine(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], 1, '#303030');
         renderSubAxis(yPositiveCoordinates, true, false);
     }
     if (yNegativeCoordinates == null) {
         //do nothing   
     } else {
-        drawLine(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], 1, '#404040');
+        drawLine(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], 1, '#303030');
         renderSubAxis(yNegativeCoordinates, false, false);
     }
 }
@@ -142,31 +148,31 @@ function renderSubAxis(coordinates, isPositive, isXAxis) {
     var subInterval;
     var i = 1;
     var subCoordinate;
-    if(interval % 2) {
+    if (interval % (2 * tenthPower) == 0) {
         subInterval = 4;
     } else {
         subInterval = 5;
     }
-    if(isXAxis) {
-        while(i < subInterval) {
+    if (isXAxis) {
+        while (i < subInterval) {
             subCoordinate = ((interval * unitInterval.pxPerUnit) / subInterval) * i;
-            if(isPositive) {
-                subCoordinate = coordinates[0] + subCoordinate;
+            if (isPositive) {
+                subCoordinate = coordinates[0] + subCoordinate; //x works from left to right, inverse of y
             } else {
                 subCoordinate = coordinates[0] - subCoordinate;
             }
-            drawLine(subCoordinate, subCoordinate, 0, windowDimensions.height, 1, 'red') 
+            drawLine(subCoordinate, subCoordinate, 0, windowDimensions.height, 0.5, '#A9A9A9')
             i++;
         }
     } else {
-        while(i < subInterval) {
+        while (i < subInterval) {
             subCoordinate = ((interval * unitInterval.pxPerUnit) / subInterval) * i;
-            if(isPositive) {
-                subCoordinate = coordinates[1] + subCoordinate;
+            if (isPositive) {
+                subCoordinate = coordinates[1] - subCoordinate; //y works from top to bottom, inverse of x
             } else {
-                subCoordinate = coordinates[1] - subCoordinate;
+                subCoordinate = coordinates[1] + subCoordinate;
             }
-            drawLine(0, windowDimensions.width, subCoordinate, subCoordinate, 1, 'red');
+            drawLine(0, windowDimensions.width, subCoordinate, subCoordinate, 0.5, '#A9A9A9');
             i++;
         }
     }
@@ -189,8 +195,8 @@ function calculatePxFromCoordinates(x, y) {
     var mdptX = windowDimensions.width / 2;
     var mdptY = windowDimensions.height / 2;
 
-    xPx = ((x - coordinates.x) * unitInterval.pxPerUnit) + mdptX; //pixels can't be negative, must be cast to positive number. 
-    yPx = (((y - coordinates.y) * unitInterval.pxPerUnit) - mdptY) * -1; //pixels can't be negative, must be cast to positive number.
+    xPx = ((x - coordinates.x) * unitInterval.pxPerUnit) + mdptX; //moves xPx's 0 value back to top left, pixels can't be negative, must be cast to positive number
+    yPx = (((y - coordinates.y) * unitInterval.pxPerUnit) - mdptY) * -1; //moves yPx's 0 value back to top left
 
     if (Math.sign(xPx) == -1 || Math.sign(yPx) == -1 || xPx > windowDimensions.width || yPx > windowDimensions.height) {
         return null;
@@ -222,7 +228,6 @@ document.addEventListener('wheel', (e) => {
     var deltaXUnits = unitInterval.count.value * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
     unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
     renderGrid();
-    console.log(unitInterval.exponent);
 });
 
 function handleZFractionLoop() {
@@ -270,6 +275,7 @@ function setCanvasDimensions() {
 }
 
 window.addEventListener('resize', () => {
+    gridSetUp();
     setCanvasDimensions();
     renderGrid();
 });
@@ -291,12 +297,10 @@ function clearCanvas() {
 
 function roundToInterval(num, interval) {
     var remainder = num % interval;
-    if(remainder >= interval / 2) {
+    if (remainder >= interval / 2) {
         num = num + (interval - remainder);
-    }
-    else {
+    } else {
         num = num - remainder;
     }
     return num;
 }
-
