@@ -16,9 +16,14 @@ var unitInterval = {
     base: 0,
     exponent: 0, //10 is squared by this exponent property
     count: {
-        initialValue: 10,
-        value: 10, //based on z's fraction value
-        rateOfChange: 0.7
+        x:{
+            initialValue: 10,
+            value: 10, //based on z's fraction value
+            rateOfChange: 0.7
+        },
+        y:{
+            value: 0 // y's value is derived from x's value, therefore only y prop required and y.value is 0
+        }
     },
     pxPerUnit: 0
 }
@@ -48,10 +53,12 @@ document.onmousedown = () => {
 }
 
 function gridSetUp() {
+    clearCanvas();
     windowDimensions.width = window.innerWidth;
     windowDimensions.height = window.innerHeight;
+    setCanvasDimensions();
     calculateIntervalBase();
-    var deltaXUnits = unitInterval.count.value * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
+    var deltaXUnits = unitInterval.count.x.value * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
     unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
 }
 
@@ -81,16 +88,16 @@ function dragEvent(e) {
 }
 
 function renderGrid() {
-    setCanvasDimensions();
-    clearCanvas();
+    gridSetUp();
     const tenthPower = 10 ** unitInterval.exponent
     const interval = unitInterval.base * tenthPower;
     const roundedX = roundToInterval(coordinates.x, interval);
     const roundedY = roundToInterval(coordinates.y, interval);
     const xOffset = (roundedX - coordinates.x) + coordinates.x;
     const yOffset = (roundedY - coordinates.y) + coordinates.y;
+    var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? unitInterval.count.x.value : unitInterval.count.y.value; //yUnitIntervalCount used for when deltaY > deltaX 
     var i = 0;
-    while (i <= (unitInterval.count.value / 2)) {
+    while (i <= (unitIntervalCount / 2) + 1) { // + 1 required as safety net if line is on edge of screen, y
         renderXAxis(i, xOffset);
         renderYAxis(i, yOffset);
         i++;
@@ -225,7 +232,7 @@ document.addEventListener('wheel', (e) => {
         coordinates.z.fraction--;
         handleZFractionLoop();
     }
-    var deltaXUnits = unitInterval.count.value * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
+    var deltaXUnits = unitInterval.count.x.value * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
     unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
     renderGrid();
 });
@@ -240,7 +247,10 @@ function handleZFractionLoop() {
         coordinates.z.fraction = 9;
         calculateIntervalBase();
     }
-    unitInterval.count.value = unitInterval.count.initialValue + coordinates.z.fraction * unitInterval.count.rateOfChange; //causes fractal effect when zooming out
+    const tenthPower = 10 ** unitInterval.exponent
+    const interval = unitInterval.base * tenthPower;
+    unitInterval.count.x.value = unitInterval.count.x.initialValue + coordinates.z.fraction * unitInterval.count.x.rateOfChange; //causes fractal effect when zooming out
+    unitInterval.count.y.value = (windowDimensions.height / windowDimensions.width) * (unitInterval.count.x.value * interval); //formula for deltaY
 }
 
 function calculateIntervalBase() {
