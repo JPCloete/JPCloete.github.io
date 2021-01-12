@@ -19,7 +19,7 @@ var unitInterval = {
         x:{
             initialValue: 10,
             value: 10, //based on z's fraction value
-            rateOfChange: 0.7
+            rateOfChange: 1
         },
         y:{
             value: 0 // y's value is derived from x's value, therefore only y prop required and y.value is 0
@@ -95,7 +95,7 @@ function renderGrid() {
     const roundedY = roundToInterval(coordinates.y, interval);
     const xOffset = (roundedX - coordinates.x) + coordinates.x;
     const yOffset = (roundedY - coordinates.y) + coordinates.y;
-    var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? unitInterval.count.x.value : unitInterval.count.y.value; //yUnitIntervalCount used for when deltaY > deltaX 
+    var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? unitInterval.count.x.value : unitInterval.count.y.value; //unitInterval.count.y.value used for when deltaY > deltaX 
     var i = 0;
     while (i <= (unitIntervalCount / 2) + 1) { // + 1 required as safety net if line is on edge of screen, y
         renderXAxis(i, xOffset);
@@ -117,13 +117,13 @@ function renderXAxis(index, offset) {
     if (xPositiveCoordinates == null) {
         //do nothing
     } else {
-        drawLine(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, 1, '#303030');
+        drawLine(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, 0.8, '#808080');
         renderSubAxis(xPositiveCoordinates, true, true);
     }
     if (xNegativeCoordinates == null) {
         //do nothing   
     } else {
-        drawLine(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, 1, '#303030');
+        drawLine(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, 0.8, '#808080');
         renderSubAxis(xNegativeCoordinates, false, true);
     }
 }
@@ -138,13 +138,13 @@ function renderYAxis(index, offset) {
     if (yPositiveCoordinates == null) {
         //do nothing
     } else {
-        drawLine(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], 1, '#303030');
+        drawLine(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], 0.8, '#808080');
         renderSubAxis(yPositiveCoordinates, true, false);
     }
     if (yNegativeCoordinates == null) {
         //do nothing   
     } else {
-        drawLine(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], 1, '#303030');
+        drawLine(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], 0.8, '#808080');
         renderSubAxis(yNegativeCoordinates, false, false);
     }
 }
@@ -168,7 +168,7 @@ function renderSubAxis(coordinates, isPositive, isXAxis) {
             } else {
                 subCoordinate = coordinates[0] - subCoordinate;
             }
-            drawLine(subCoordinate, subCoordinate, 0, windowDimensions.height, 0.5, '#A9A9A9')
+            drawLine(subCoordinate, subCoordinate, 0, windowDimensions.height, 0.5, '#DCDCDC')
             i++;
         }
     } else {
@@ -179,20 +179,20 @@ function renderSubAxis(coordinates, isPositive, isXAxis) {
             } else {
                 subCoordinate = coordinates[1] + subCoordinate;
             }
-            drawLine(0, windowDimensions.width, subCoordinate, subCoordinate, 0.5, '#A9A9A9');
+            drawLine(0, windowDimensions.width, subCoordinate, subCoordinate, 0.5, '#DCDCDC');
             i++;
         }
     }
 }
 
-function calculateCoordinatesFromPx(x, y) {
+function calculateCoordinatesFromPx(xPx, yPx) {
     var mdptX = windowDimensions.width / 2;
     var mdptY = windowDimensions.height / 2;
-    if (Math.sign(x) == -1 || Math.sign(y) == -1 || x > windowDimensions.width || y > windowDimensions.height) {
+    if (Math.sign(xPx) == -1 || Math.sign(yPx) == -1 || xPx > windowDimensions.width || yPx > windowDimensions.height) { //checks if pixels aren't negative/out of bounds
         return null;
     } else {
-        x = ((x - mdptX) / unitInterval.pxPerUnit) + coordinates.x; //moves x's 0 value from top left to center
-        y = (((y * -1) + mdptY) / unitInterval.pxPerUnit) + coordinates.y; //moves y's 0 value from top left to center
+        var x = ((xPx - mdptX) / unitInterval.pxPerUnit) + coordinates.x; //moves x's 0 value from top left to center
+        var y = (((yPx * -1) + mdptY) / unitInterval.pxPerUnit) + coordinates.y; //moves y's 0 value from top left to center
 
         return [x, y];
     }
@@ -202,8 +202,8 @@ function calculatePxFromCoordinates(x, y) {
     var mdptX = windowDimensions.width / 2;
     var mdptY = windowDimensions.height / 2;
 
-    xPx = ((x - coordinates.x) * unitInterval.pxPerUnit) + mdptX; //moves xPx's 0 value back to top left, pixels can't be negative, must be cast to positive number
-    yPx = (((y - coordinates.y) * unitInterval.pxPerUnit) - mdptY) * -1; //moves yPx's 0 value back to top left
+    var xPx = ((x - coordinates.x) * unitInterval.pxPerUnit) + mdptX; //moves xPx's 0 value back to top left, pixels can't be negative, must be cast to positive number
+    var yPx = (((y - coordinates.y) * unitInterval.pxPerUnit) - mdptY) * -1; //moves yPx's 0 value back to top left
 
     if (Math.sign(xPx) == -1 || Math.sign(yPx) == -1 || xPx > windowDimensions.width || yPx > windowDimensions.height) {
         return null;
@@ -225,12 +225,14 @@ function calculateDragNewMdpt(y2, y1, x2, x1) {
 //4.If remainder is 0 or 2 calculate the exponent of the interval
 //5.Set pxPerUnit value(VERY IMPORTANT!!!)
 document.addEventListener('wheel', (e) => {
-    if (e.deltaY == 100) { //deltaY = 100 if mouseWheelUp; deltaY = -100 if mouseWheelDown
+    if (e.deltaY == 100) { //deltaY = 100 if mouseWheelUp
         coordinates.z.fraction++;
         handleZFractionLoop();
-    } else {
+    } else if(e.deltaY == - 100) { //deltaY = -100 if mouseWheelDown
         coordinates.z.fraction--;
         handleZFractionLoop();
+    } else {
+        return
     }
     var deltaXUnits = unitInterval.count.x.value * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
     unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
