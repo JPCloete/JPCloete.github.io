@@ -16,14 +16,10 @@ var unitInterval = {
     base: 0,
     exponent: 0, //10 is squared by this exponent property
     count: {
-        x:{
-            initialValue: 10,
-            value: 10, //based on z's fraction value
-            rateOfChange: 1
-        },
-        y:{
-            value: 0 // y's value is derived from x's value, therefore only y prop required and y.value is 0
-        }
+        initialValue: 10,
+        rateOfChange: 1,
+        xValue: 10, //derived from initialValue + zFraction * rateOfChange
+        yValue: 0 // y's value is derived from x's value, therefore initial y.value is 0
     },
     pxPerUnit: 0
 }
@@ -58,7 +54,7 @@ function gridSetUp() {
     windowDimensions.height = window.innerHeight;
     setCanvasDimensions();
     calculateIntervalBase();
-    var deltaXUnits = unitInterval.count.x.value * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
+    var deltaXUnits = unitInterval.count.xValue * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
     unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
 }
 
@@ -95,7 +91,7 @@ function renderGrid() {
     const roundedY = roundToInterval(coordinates.y, interval);
     const xOffset = (roundedX - coordinates.x) + coordinates.x;
     const yOffset = (roundedY - coordinates.y) + coordinates.y;
-    var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? unitInterval.count.x.value : unitInterval.count.y.value; //unitInterval.count.y.value used for when deltaY > deltaX 
+    var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? unitInterval.count.xValue : unitInterval.count.yValue; //unitInterval.count.yValue used for when deltaY > deltaX 
     var i = 0;
     while (i <= (unitIntervalCount / 2) + 1) { // + 1 required as safety net if line is on edge of screen, y
         renderXAxis(i, xOffset);
@@ -221,8 +217,8 @@ function calculateDragNewMdpt(y2, y1, x2, x1) {
 
 //1.Increment z.fraction depending on zoomin / -out
 //2.handle zoomin / -out looping with handleZFractionLoop function eg -> 7.9 => 8.0(zoomout) || 91.0 => 90.9(zoomin)
-//3.calculate the base of the interval based on remainder
-//4.If remainder is 0 or 2 calculate the exponent of the interval
+//3.calculate the base of the interval based on remainder(remainder = base % 3)
+//4.If remainder is 0(base = 1[min]) or 2(base = 5[max]) calculate the exponent of the interval
 //5.Set pxPerUnit value(VERY IMPORTANT!!!)
 document.addEventListener('wheel', (e) => {
     if (e.deltaY == 100) { //deltaY = 100 if mouseWheelUp
@@ -231,10 +227,8 @@ document.addEventListener('wheel', (e) => {
     } else if(e.deltaY == - 100) { //deltaY = -100 if mouseWheelDown
         coordinates.z.fraction--;
         handleZFractionLoop();
-    } else {
-        return
     }
-    var deltaXUnits = unitInterval.count.x.value * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
+    var deltaXUnits = unitInterval.count.xValue * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
     unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
     renderGrid();
 });
@@ -251,8 +245,8 @@ function handleZFractionLoop() {
     }
     const tenthPower = 10 ** unitInterval.exponent
     const interval = unitInterval.base * tenthPower;
-    unitInterval.count.x.value = unitInterval.count.x.initialValue + coordinates.z.fraction * unitInterval.count.x.rateOfChange; //causes fractal effect when zooming out
-    unitInterval.count.y.value = (windowDimensions.height / windowDimensions.width) * (unitInterval.count.x.value * interval); //formula for deltaY
+    unitInterval.count.xValue = unitInterval.count.initialValue + coordinates.z.fraction * unitInterval.count.rateOfChange; //causes fractal effect when zooming out
+    unitInterval.count.yValue = (windowDimensions.height / windowDimensions.width) * (unitInterval.count.xValue * interval); //formula for deltaY
 }
 
 function calculateIntervalBase() {
