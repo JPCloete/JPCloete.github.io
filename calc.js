@@ -239,9 +239,8 @@ function handleZFractionLoop() {
         coordinates.z.fraction = 9;
         calculateIntervalBase();
     }
-    const interval = unitInterval.base * unitInterval.tenthExponent;
     unitInterval.count.xValue = unitInterval.count.initialValue + coordinates.z.fraction * unitInterval.count.rateOfChange; //causes fractal effect when zooming out
-    unitInterval.count.yValue = (windowDimensions.height / windowDimensions.width) * (unitInterval.count.xValue * interval); //formula for deltaY
+    unitInterval.count.yValue = (windowDimensions.height / windowDimensions.width) * unitInterval.count.xValue; //formula for deltaY
 }
 
 function calculateIntervalBase() {
