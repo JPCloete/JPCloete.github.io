@@ -14,7 +14,7 @@ var coordinates = {
 
 var unitInterval = {
     base: 0,
-    exponent: 0, //10 is squared by this exponent property
+    tenthExponent: 0,
     count: {
         initialValue: 10,
         rateOfChange: 1,
@@ -54,7 +54,7 @@ function gridSetUp() {
     windowDimensions.height = window.innerHeight;
     setCanvasDimensions();
     calculateIntervalBase();
-    var deltaXUnits = unitInterval.count.xValue * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
+    var deltaXUnits = unitInterval.count.xValue * unitInterval.base * unitInterval.tenthExponent; //Net X Units
     unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
 }
 
@@ -85,8 +85,7 @@ function dragEvent(e) {
 
 function renderGrid() {
     gridSetUp();
-    const tenthPower = 10 ** unitInterval.exponent
-    const interval = unitInterval.base * tenthPower;
+    const interval = unitInterval.base * unitInterval.tenthExponent;
     const roundedX = roundToInterval(coordinates.x, interval);
     const roundedY = roundToInterval(coordinates.y, interval);
     const xOffset = (roundedX - coordinates.x) + coordinates.x;
@@ -101,8 +100,7 @@ function renderGrid() {
 }
 
 function renderXAxis(index, offset) {
-    const tenthPower = 10 ** unitInterval.exponent
-    const interval = unitInterval.base * tenthPower;
+    const interval = unitInterval.base * unitInterval.tenthExponent;
     var x = offset + (interval * index); //positive x value(s)
     var xPositiveCoordinates = calculatePxFromCoordinates(x, coordinates.y);
     x = offset - (interval * index); //negative x value(s)
@@ -125,8 +123,7 @@ function renderXAxis(index, offset) {
 }
 
 function renderYAxis(index, offset) {
-    const tenthPower = 10 ** unitInterval.exponent
-    const interval = unitInterval.base * tenthPower;
+    const interval = unitInterval.base * unitInterval.tenthExponent;
     var y = offset + (interval * index); //positive x value(s)
     var yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, y);
     y = offset - (interval * index); //negative x value(s)
@@ -146,12 +143,11 @@ function renderYAxis(index, offset) {
 }
 
 function renderSubAxis(coordinates, isPositive, isXAxis) {
-    const tenthPower = 10 ** unitInterval.exponent
-    const interval = unitInterval.base * tenthPower;
+    const interval = unitInterval.base * unitInterval.tenthExponent;
     var subInterval;
     var i = 1;
     var subCoordinate;
-    if (interval % (2 * tenthPower) == 0) {
+    if (interval % (2 * unitInterval.tenthExponent) == 0) {
         subInterval = 4;
     } else {
         subInterval = 5;
@@ -218,7 +214,7 @@ function calculateDragNewMdpt(y2, y1, x2, x1) {
 //1.Increment z.fraction depending on zoomin / -out
 //2.handle zoomin / -out looping with handleZFractionLoop function eg -> 7.9 => 8.0(zoomout) || 91.0 => 90.9(zoomin)
 //3.calculate the base of the interval based on remainder(remainder = base % 3)
-//4.If remainder is 0(base = 1[min]) or 2(base = 5[max]) calculate the exponent of the interval
+//4.If remainder is 0(base = 1[min]) or 2(base = 5[max]) calculate the tenthExponent of the interval
 //5.Set pxPerUnit value(VERY IMPORTANT!!!)
 document.addEventListener('wheel', (e) => {
     if (e.deltaY == 100) { //deltaY = 100 if mouseWheelUp
@@ -228,7 +224,7 @@ document.addEventListener('wheel', (e) => {
         coordinates.z.fraction--;
         handleZFractionLoop();
     }
-    var deltaXUnits = unitInterval.count.xValue * unitInterval.base * 10 ** unitInterval.exponent; //Net X Units
+    var deltaXUnits = unitInterval.count.xValue * unitInterval.base * unitInterval.tenthExponent; //Net X Units
     unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
     renderGrid();
 });
@@ -243,8 +239,7 @@ function handleZFractionLoop() {
         coordinates.z.fraction = 9;
         calculateIntervalBase();
     }
-    const tenthPower = 10 ** unitInterval.exponent
-    const interval = unitInterval.base * tenthPower;
+    const interval = unitInterval.base * unitInterval.tenthExponent;
     unitInterval.count.xValue = unitInterval.count.initialValue + coordinates.z.fraction * unitInterval.count.rateOfChange; //causes fractal effect when zooming out
     unitInterval.count.yValue = (windowDimensions.height / windowDimensions.width) * (unitInterval.count.xValue * interval); //formula for deltaY
 }
@@ -272,7 +267,7 @@ function calculateIntervalExponent(remainder) {
     //remainder is minused to "round" to the 1st factor of 3 below the current base.
     //the case above is only necessary when base is moving from 1 -> 5
     var defaultZDifference = coordinates.z.base - coordinates.z.initialBase - remainder;
-    unitInterval.exponent = defaultZDifference / 3;
+    unitInterval.tenthExponent = 10 ** (defaultZDifference / 3);
 }
 
 function setCanvasDimensions() {
