@@ -93,60 +93,37 @@ function renderGrid() {
     var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? unitInterval.count.xValue : unitInterval.count.yValue; //unitInterval.count.yValue used for when deltaY > deltaX 
     var i = 0;
     while (i <= (unitIntervalCount / 2) + 1) { // + 1 required as safety net if line is on edge of screen, y
-        renderXAxis(i, xOffset);
-        renderYAxis(i, yOffset);
+        let xPositiveCoordinates = calculatePxFromCoordinates((xOffset + (interval * i)), coordinates.y);
+        let xNegativeCoordinates = calculatePxFromCoordinates((xOffset - (interval * i)), coordinates.y);
+        let yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset + (interval * i)));
+        let yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset - (interval * i)));
+        if(i == 0) {
+            renderSubAxis(xPositiveCoordinates[0], xPositiveCoordinates[1], true, true);
+        }
+        renderAxis(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, true, true); //renders positive(relative to mdpt) x values
+        renderAxis(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, false, true); //renders negative(relative to mdpt) y values
+        renderAxis(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], true, false); //renders negative re
+        renderAxis(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], false, false);
         i++;
     }
 }
-
-function renderXAxis(index, offset) {
-    const interval = unitInterval.base * unitInterval.tenthExponent;
-    var x = offset + (interval * index); //positive x value(s)
-    var xPositiveCoordinates = calculatePxFromCoordinates(x, coordinates.y);
-    x = offset - (interval * index); //negative x value(s)
-    var xNegativeCoordinates = calculatePxFromCoordinates(x, coordinates.y);
-    if (index == 0) {
-        renderSubAxis(xPositiveCoordinates, true, true);
+function renderAxis(x1, x2, y1, y2, subAxisIsPositive, subAxisIsXAxis) {
+    if(x1 == null || x2 == null || y1 == null || y2 == null) {
+        return; //do nothing
     }
-    if (xPositiveCoordinates == null) {
-        //do nothing
-    } else {
-        drawLine(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, 0.8, '#808080');
-        renderSubAxis(xPositiveCoordinates, true, true);
+    drawLine(x1, x2, y1, y2, 0.8, '#808080');
+    if(x1 !== coordinates.x) {
+        renderSubAxis(x1, y1, subAxisIsPositive, subAxisIsXAxis);
+        return;
     }
-    if (xNegativeCoordinates == null) {
-        //do nothing   
-    } else {
-        drawLine(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, 0.8, '#808080');
-        renderSubAxis(xNegativeCoordinates, false, true);
-    }
+    renderSubAxis(x2, y2, subAxisIsPositive, subAxisIsXAxis);
 }
 
-function renderYAxis(index, offset) {
-    const interval = unitInterval.base * unitInterval.tenthExponent;
-    var y = offset + (interval * index); //positive x value(s)
-    var yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, y);
-    y = offset - (interval * index); //negative x value(s)
-    var yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, y);
-    if (yPositiveCoordinates == null) {
-        //do nothing
-    } else {
-        drawLine(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], 0.8, '#808080');
-        renderSubAxis(yPositiveCoordinates, true, false);
-    }
-    if (yNegativeCoordinates == null) {
-        //do nothing   
-    } else {
-        drawLine(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], 0.8, '#808080');
-        renderSubAxis(yNegativeCoordinates, false, false);
-    }
-}
-
-function renderSubAxis(coordinates, isPositive, isXAxis) {
+function renderSubAxis(x, y, isPositive, isXAxis) {
     const interval = unitInterval.base * unitInterval.tenthExponent;
     var subInterval;
-    var i = 1;
     var subCoordinate;
+    var i = 1;
     if (interval % (2 * unitInterval.tenthExponent) == 0) {
         subInterval = 4;
     } else {
@@ -156,9 +133,9 @@ function renderSubAxis(coordinates, isPositive, isXAxis) {
         while (i < subInterval) {
             subCoordinate = ((interval * unitInterval.pxPerUnit) / subInterval) * i;
             if (isPositive) {
-                subCoordinate = coordinates[0] + subCoordinate; //x works from left to right, inverse of y
+                subCoordinate = x + subCoordinate; //x works from left to right, inverse of y
             } else {
-                subCoordinate = coordinates[0] - subCoordinate;
+                subCoordinate = x - subCoordinate;
             }
             drawLine(subCoordinate, subCoordinate, 0, windowDimensions.height, 0.5, '#DCDCDC')
             i++;
@@ -167,9 +144,9 @@ function renderSubAxis(coordinates, isPositive, isXAxis) {
         while (i < subInterval) {
             subCoordinate = ((interval * unitInterval.pxPerUnit) / subInterval) * i;
             if (isPositive) {
-                subCoordinate = coordinates[1] - subCoordinate; //y works from top to bottom, inverse of x
+                subCoordinate = y - subCoordinate; //y works from top to bottom, inverse of x
             } else {
-                subCoordinate = coordinates[1] + subCoordinate;
+                subCoordinate = y + subCoordinate;
             }
             drawLine(0, windowDimensions.width, subCoordinate, subCoordinate, 0.5, '#DCDCDC');
             i++;
@@ -181,7 +158,7 @@ function calculateCoordinatesFromPx(xPx, yPx) {
     var mdptX = windowDimensions.width / 2;
     var mdptY = windowDimensions.height / 2;
     if (Math.sign(xPx) == -1 || Math.sign(yPx) == -1 || xPx > windowDimensions.width || yPx > windowDimensions.height) { //checks if pixels aren't negative/out of bounds
-        return null;
+        return [null, null];
     } else {
         var x = ((xPx - mdptX) / unitInterval.pxPerUnit) + coordinates.x; //moves x's 0 value from top left to center
         var y = (((yPx * -1) + mdptY) / unitInterval.pxPerUnit) + coordinates.y; //moves y's 0 value from top left to center
@@ -198,7 +175,7 @@ function calculatePxFromCoordinates(x, y) {
     var yPx = (((y - coordinates.y) * unitInterval.pxPerUnit) - mdptY) * -1; //moves yPx's 0 value back to top left
 
     if (Math.sign(xPx) == -1 || Math.sign(yPx) == -1 || xPx > windowDimensions.width || yPx > windowDimensions.height) {
-        return null;
+        return [null, null];
     } else {
         return [xPx, yPx];
     }
