@@ -98,10 +98,10 @@ function renderGrid() {
         let xNegativeCoordinates = calculatePxFromCoordinates((xOffset - (interval * i)), coordinates.y);
         let yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset + (interval * i)));
         let yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset - (interval * i)));
-        renderAxis(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, false, 'red'); //renders positive(relative to mdpt) x values
-        renderAxis(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, true, 'green'); //renders negative(relative to mdpt) x values
-        renderAxis(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], true, 'green'); //renders positive(relative to mdtp) y values 
-        renderAxis(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], false, 'red'); //renders negative(relatvie to mdpt) y values
+        renderAxis(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, false); //renders positive(relative to mdpt) x values
+        renderAxis(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, true); //renders negative(relative to mdpt) x values
+        renderAxis(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], true); //renders positive(relative to mdtp) y values 
+        renderAxis(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], false); //renders negative(relatvie to mdpt) y values
         i++;
     }
 }
@@ -118,17 +118,25 @@ function renderAxis(x1, x2, y1, y2, isNegative, color) {
     }
     drawLine(x1, x2, y1, y2, 1, 'black')
     if(x2 !== windowDimensions.width) {
-        renderSubAxis(x1, null, null, 0, windowDimensions.height, subInterval, isNegative, color);
+        renderSubAxis(x1, null, null, 0, windowDimensions.height, subInterval, isNegative);
         return; //end function
     }
-    renderSubAxis(y1, 0, windowDimensions.width, null, null, subInterval, isNegative, color);
+    renderSubAxis(y1, 0, windowDimensions.width, null, null, subInterval, isNegative);
 }
 
-function renderSubAxis(coordinate, x1, x2, y1, y2, subInterval, isNegative, color) {
+function renderSubAxis(coordinate, x1, x2, y1, y2, subInterval, isNegative) {
     const interval = unitInterval.base * unitInterval.tenthExponent;
+    var prevSubCoordinatePos;
     var i = 1;
     while (i < subInterval) {
-        var prevSubCoordinatePos = ((interval * unitInterval.pxPerUnit) / subInterval) * (i - 1);
+        if(x1 == null || x2 == null || y1 == null || y2 == null) {
+            //do nothing
+        } else {
+            prevSubCoordinatePos = ((interval * unitInterval.pxPerUnit) / subInterval) * (i - 1);
+        }
+        if(windowDimensions.height <= coordinate) {
+            return;
+        }
         var subCoordinatePos = ((interval * unitInterval.pxPerUnit) / subInterval) * i;
         var subCoordinate = isNegative == true ? coordinate - subCoordinatePos : coordinate + subCoordinatePos;
         var prevSubCoordinate = isNegative == true ? coordinate - prevSubCoordinatePos : coordinate + prevSubCoordinatePos
@@ -136,7 +144,7 @@ function renderSubAxis(coordinate, x1, x2, y1, y2, subInterval, isNegative, colo
         x2 = x2 == null || x2 == prevSubCoordinate ? subCoordinate : x2;
         y1 = y1 == null || y1 == prevSubCoordinate ? subCoordinate : y1;
         y2 = y2 == null || y2 == prevSubCoordinate ? subCoordinate : y2;
-        drawLine(x1, x2, y1, y2, 0.4, color)
+        drawLine(x1, x2, y1, y2, 0.4, '#DFDFDF');
         i++;
     }
 }
