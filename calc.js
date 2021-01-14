@@ -92,43 +92,54 @@ function renderGrid() {
     const xOffset = (roundedX - coordinates.x) + coordinates.x;
     const yOffset = (roundedY - coordinates.y) + coordinates.y;
     var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? unitInterval.count.xValue : unitInterval.count.yValue; //unitInterval.count.yValue used for when deltaY > deltaX 
+    var subInterval;
+    var mainAxisFlag = false; //flag used to make subAxes render first then mainAxis so overlapping of lines are consistent
     var i = 0;
-    while (i <= (unitIntervalCount / 2) + 1) {
-        let xPositiveCoordinates = calculatePxFromCoordinates((xOffset + (interval * i)), coordinates.y);
-        let xNegativeCoordinates = calculatePxFromCoordinates((xOffset - (interval * i)), coordinates.y);
-        let yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset + (interval * i)));
-        let yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset - (interval * i)));
-        renderAxis(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, false); //renders positive(relative to mdpt) x values
-        renderAxis(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, true); //renders negative(relative to mdpt) x values
-        renderAxis(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], true); //renders positive(relative to mdtp) y values 
-        renderAxis(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], false); //renders negative(relatvie to mdpt) y values
-        i++;
-    }
-}
-
-function renderAxis(x1, x2, y1, y2, isNegative) {
-    const interval = unitInterval.base * unitInterval.tenthExponent;
     if (interval % (2 * unitInterval.tenthExponent) == 0) {
         subInterval = 4;
     } else {
         subInterval = 5;
     }
-    if(x1 == null || x2 == null || y1 == null || y2 == null) {
+    while (i <= (unitIntervalCount / 2) + 1) {
+        if(i >= ((unitIntervalCount / 2)) && !mainAxisFlag) {
+            mainAxisFlag = true;
+            i = 0;
+        }
+        let xPositiveCoordinates = calculatePxFromCoordinates((xOffset + (interval * i)), coordinates.y);
+        let xNegativeCoordinates = calculatePxFromCoordinates((xOffset - (interval * i)), coordinates.y);
+        let yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset + (interval * i)));
+        let yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset - (interval * i)));
+        if(!mainAxisFlag) {
+            renderSubAxis(xPositiveCoordinates[0], null, null, 0, windowDimensions.height, subInterval, false);
+            renderSubAxis(xNegativeCoordinates[0], null, null, 0, windowDimensions.height, subInterval, true);
+            renderSubAxis(yPositiveCoordinates[1], 0, windowDimensions.width, null, null, subInterval, true);
+            renderSubAxis(yNegativeCoordinates[1], 0, windowDimensions.width, null, null, subInterval, false);
+        }
+        if(mainAxisFlag) {
+            renderAxis(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, '#A9A9A9'); //renders positive(relative to mdpt) x values
+            renderAxis(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, '#A9A9A9'); //renders negative(relative to mdpt) x values
+            renderAxis(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], '#A9A9A9'); //renders positive(relative to mdtp) y values 
+            renderAxis(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], '#A9A9A9'); //renders negative(relatvie to mdpt) y values
+        }
+        i++;
+    }
+}
+
+function renderAxis(x1, x2, y1, y2, color) {
+    if (x1 == null || x2 == null || y1 == null || y2 == null) {
         return; //do nothing
     }
-    drawLine(x1, x2, y1, y2, 1, 'black')
-    if(x2 !== windowDimensions.width) {
-        renderSubAxis(x1, null, null, 0, windowDimensions.height, subInterval, isNegative);
+    drawLine(x1, x2, y1, y2, 1, color)
+    if (x2 !== windowDimensions.width) {
         return; //end function
     }
-    renderSubAxis(y1, 0, windowDimensions.width, null, null, subInterval, isNegative);
 }
 
 function renderSubAxis(coordinate, x1, x2, y1, y2, subInterval, isNegative) {
     const interval = unitInterval.base * unitInterval.tenthExponent;
     var i = 1;
     while (i < subInterval) {
-        if(coordinate <= 0) {
+        if (coordinate <= 0 || coordinate == null) {
             return;
         }
         var prevSubCoordinatePos = ((interval * unitInterval.pxPerUnit) / subInterval) * (i - 1);
@@ -139,7 +150,7 @@ function renderSubAxis(coordinate, x1, x2, y1, y2, subInterval, isNegative) {
         x2 = x2 == null || x2 == prevSubCoordinate ? subCoordinate : x2;
         y1 = y1 == null || y1 == prevSubCoordinate ? subCoordinate : y1;
         y2 = y2 == null || y2 == prevSubCoordinate ? subCoordinate : y2;
-        drawLine(x1, x2, y1, y2, 0.4, '#DFDFDF');
+        drawLine(x1, x2, y1, y2, 0.4, '#E8E8E8');
         i++;
     }
 }
@@ -187,7 +198,7 @@ document.addEventListener('wheel', (e) => {
     if (e.deltaY == 100) { //deltaY = 100 if mouseWheelUp
         coordinates.z.fraction++;
         handleZFractionLoop();
-    } else if(e.deltaY == - 100) { //deltaY = -100 if mouseWheelDown
+    } else if (e.deltaY == -100) { //deltaY = -100 if mouseWheelDown
         coordinates.z.fraction--;
         handleZFractionLoop();
     }
@@ -231,15 +242,15 @@ function setIntervalCount() {
 }
 
 function calculateIntervalExponent(remainder) {
-    //remainder is minused to "round" to the 1st factor of 3 below the current base.
-    //the case above is only necessary when base is moving from 1 -> 5
-    var defaultZDifference = coordinates.z.base - coordinates.z.initialBase - remainder;
+    var defaultZDifference = coordinates.z.base - coordinates.z.initialBase - remainder; //remainder is minused to "round" to the 1st factor of 3 below the current base.
     unitInterval.tenthExponent = 10 ** (defaultZDifference / 3);
 }
 
 function setCanvasDimensions() {
     canvas.htmlElement.height = windowDimensions.height;
     canvas.htmlElement.width = windowDimensions.width;
+    canvas.width = windowDimensions.width;
+    canvas.height = windowDimensions.height;
 }
 
 window.addEventListener('resize', () => {
@@ -250,6 +261,8 @@ window.addEventListener('resize', () => {
 
 function drawLine(x1, x2, y1, y2, lineWidth, lineColor) {
     const ctx = canvas.getCtx();
+    ctx.font = "12  px Arial";
+    ctx.fillText("2 x10^3", 10, 50);
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
