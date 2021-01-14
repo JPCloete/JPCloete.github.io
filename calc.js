@@ -93,7 +93,7 @@ function renderGrid() {
     const yOffset = (roundedY - coordinates.y) + coordinates.y;
     var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? unitInterval.count.xValue : unitInterval.count.yValue; //unitInterval.count.yValue used for when deltaY > deltaX 
     var i = 0;
-    while (i <= (unitIntervalCount / 2) + 1) { // + 1 required as safety net if line is on edge of screen, y
+    while (i <= (unitIntervalCount / 2) + 1) {
         let xPositiveCoordinates = calculatePxFromCoordinates((xOffset + (interval * i)), coordinates.y);
         let xNegativeCoordinates = calculatePxFromCoordinates((xOffset - (interval * i)), coordinates.y);
         let yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset + (interval * i)));
@@ -106,7 +106,7 @@ function renderGrid() {
     }
 }
 
-function renderAxis(x1, x2, y1, y2, isNegative, color) {
+function renderAxis(x1, x2, y1, y2, isNegative) {
     const interval = unitInterval.base * unitInterval.tenthExponent;
     if (interval % (2 * unitInterval.tenthExponent) == 0) {
         subInterval = 4;
@@ -126,17 +126,12 @@ function renderAxis(x1, x2, y1, y2, isNegative, color) {
 
 function renderSubAxis(coordinate, x1, x2, y1, y2, subInterval, isNegative) {
     const interval = unitInterval.base * unitInterval.tenthExponent;
-    var prevSubCoordinatePos;
     var i = 1;
     while (i < subInterval) {
-        if(x1 == null || x2 == null || y1 == null || y2 == null) {
-            //do nothing
-        } else {
-            prevSubCoordinatePos = ((interval * unitInterval.pxPerUnit) / subInterval) * (i - 1);
-        }
-        if(windowDimensions.height <= coordinate) {
+        if(coordinate <= 0) {
             return;
         }
+        var prevSubCoordinatePos = ((interval * unitInterval.pxPerUnit) / subInterval) * (i - 1);
         var subCoordinatePos = ((interval * unitInterval.pxPerUnit) / subInterval) * i;
         var subCoordinate = isNegative == true ? coordinate - subCoordinatePos : coordinate + subCoordinatePos;
         var prevSubCoordinate = isNegative == true ? coordinate - prevSubCoordinatePos : coordinate + prevSubCoordinatePos
@@ -211,27 +206,28 @@ function handleZFractionLoop() {
         coordinates.z.fraction = 9;
         calculateIntervalBase();
     }
-    unitInterval.count.xValue = unitInterval.count.initialValue + coordinates.z.fraction * unitInterval.count.rateOfChange; //causes fractal effect when zooming out
-    unitInterval.count.yValue = (windowDimensions.height / windowDimensions.width) * unitInterval.count.xValue; //formula for deltaY
 }
 
 function calculateIntervalBase() {
+    setIntervalCount();
     var zBaseRemainder = coordinates.z.base % 3;
     switch (zBaseRemainder) {
         case 0:
             unitInterval.base = 1;
             calculateIntervalExponent(zBaseRemainder); //when moving from interval base of 5 -> 1
-            break;
         case 1:
             unitInterval.base = 2;
-            break;
         case 2:
             unitInterval.base = 5;
             calculateIntervalExponent(zBaseRemainder); //when moving from interval base of 1 -> 5
-            break;
         default:
             //do nothings
     }
+}
+
+function setIntervalCount() {
+    unitInterval.count.xValue = unitInterval.count.initialValue + coordinates.z.fraction * unitInterval.count.rateOfChange; //causes fractal effect when zooming out
+    unitInterval.count.yValue = (windowDimensions.height / windowDimensions.width) * unitInterval.count.xValue; //formula for deltaY
 }
 
 function calculateIntervalExponent(remainder) {
