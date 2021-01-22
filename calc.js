@@ -12,7 +12,7 @@ var coordinates = {
     }
 }
 
-var unitInterval = {
+var interval = {
     base: 0,
     tenthExponent: 0,
     count: {
@@ -55,8 +55,8 @@ function gridSetUp() {
     windowDimensions.height = window.innerHeight;
     setCanvasDimensions();
     calculateIntervalBase();
-    var deltaXUnits = unitInterval.count.xValue * unitInterval.base * unitInterval.tenthExponent; //Net X Units
-    unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
+    var deltaXUnits = interval.count.xValue * interval.base * interval.tenthExponent; //Net X Units
+    interval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
 }
 
 //custom event(hold mouse button 1 and drag)
@@ -86,36 +86,35 @@ function dragEvent(e) {
 
 function renderGrid() {
     gridSetUp();
-    const interval = unitInterval.base * unitInterval.tenthExponent;
-    const roundedX = roundToInterval(coordinates.x, interval);
-    const roundedY = roundToInterval(coordinates.y, interval);
+    const tempInterval = interval.base * interval.tenthExponent;
+    const roundedX = roundToInterval(coordinates.x, tempInterval);
+    const roundedY = roundToInterval(coordinates.y, tempInterval);
     const xOffset = (roundedX - coordinates.x) + coordinates.x;
     const yOffset = (roundedY - coordinates.y) + coordinates.y;
-    var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? unitInterval.count.xValue : unitInterval.count.yValue; //unitInterval.count.yValue used for when deltaY > deltaX 
-    var subInterval;
-    var mainAxisFlag = false; //flag used to make subAxes render first then mainAxis so overlapping of lines are consistent
+    var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? interval.count.xValue : interval.count.yValue; //interval.count.yValue used for when deltaY > deltaX 
+    var subIntervalCount;
+    var subAxisFlag = true; //flag used to make subAxes render first then mainAxis so overlapping of lines are consistent
     var i = 0;
-    if (interval % (2 * unitInterval.tenthExponent) == 0) {
-        subInterval = 4;
+    if (tempInterval % (2 * interval.tenthExponent) == 0) { //calculates 
+        subIntervalCount = 4;
     } else {
-        subInterval = 5;
+        subIntervalCount = 5;
     }
     while (i <= (unitIntervalCount / 2) + 1) {
-        if(i >= ((unitIntervalCount / 2)) && !mainAxisFlag) {
-            mainAxisFlag = true;
-            i = 0;
+        if (i >= (unitIntervalCount + 1) / 2 && subAxisFlag) { //loop resets(code has to be looped twice)
+            subAxisFlag = false;
+            i = 0; //reset loop 
         }
-        let xPositiveCoordinates = calculatePxFromCoordinates((xOffset + (interval * i)), coordinates.y);
-        let xNegativeCoordinates = calculatePxFromCoordinates((xOffset - (interval * i)), coordinates.y);
-        let yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset + (interval * i)));
-        let yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset - (interval * i)));
-        if(!mainAxisFlag) {
-            renderSubAxis(xPositiveCoordinates[0], null, null, 0, windowDimensions.height, subInterval, false);
-            renderSubAxis(xNegativeCoordinates[0], null, null, 0, windowDimensions.height, subInterval, true);
-            renderSubAxis(yPositiveCoordinates[1], 0, windowDimensions.width, null, null, subInterval, true);
-            renderSubAxis(yNegativeCoordinates[1], 0, windowDimensions.width, null, null, subInterval, false);
-        }
-        if(mainAxisFlag) {
+        let xPositiveCoordinates = calculatePxFromCoordinates((xOffset + (tempInterval * i)), coordinates.y);
+        let xNegativeCoordinates = calculatePxFromCoordinates((xOffset - (tempInterval * i)), coordinates.y);
+        let yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset + (tempInterval * i)));
+        let yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset - (tempInterval * i)));
+        if (subAxisFlag) {
+            renderSubAxis(xPositiveCoordinates[0], subIntervalCount, true, true);
+            renderSubAxis(xNegativeCoordinates[0], subIntervalCount, true, false);
+            renderSubAxis(yPositiveCoordinates[1], subIntervalCount, false, false);
+            renderSubAxis(yNegativeCoordinates[1], subIntervalCount, false, true);
+        } else {
             renderAxis(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, '#A9A9A9'); //renders positive(relative to mdpt) x values
             renderAxis(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, '#A9A9A9'); //renders negative(relative to mdpt) x values
             renderAxis(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], '#A9A9A9'); //renders positive(relative to mdtp) y values 
@@ -135,21 +134,19 @@ function renderAxis(x1, x2, y1, y2, color) {
     }
 }
 
-function renderSubAxis(coordinate, x1, x2, y1, y2, subInterval, isNegative) {
-    const interval = unitInterval.base * unitInterval.tenthExponent;
+function renderSubAxis(coordinate, subIntervalCount, isX, isPositive) {
+    const tempInterval = interval.base * interval.tenthExponent;
     var i = 1;
-    while (i < subInterval) {
-        if (coordinate <= 0 || coordinate == null) {
+    while (i < subIntervalCount) {
+        if(coordinate == null) { //if coordinate isn't in bound, end loop
             return;
         }
-        var prevSubCoordinatePos = ((interval * unitInterval.pxPerUnit) / subInterval) * (i - 1);
-        var subCoordinatePos = ((interval * unitInterval.pxPerUnit) / subInterval) * i;
-        var subCoordinate = isNegative == true ? coordinate - subCoordinatePos : coordinate + subCoordinatePos;
-        var prevSubCoordinate = isNegative == true ? coordinate - prevSubCoordinatePos : coordinate + prevSubCoordinatePos
-        x1 = x1 == null || x1 == prevSubCoordinate ? subCoordinate : x1;
-        x2 = x2 == null || x2 == prevSubCoordinate ? subCoordinate : x2;
-        y1 = y1 == null || y1 == prevSubCoordinate ? subCoordinate : y1;
-        y2 = y2 == null || y2 == prevSubCoordinate ? subCoordinate : y2;
+        var subCoordinatePos = ((tempInterval * interval.pxPerUnit) / subIntervalCount) * i;
+        var subCoordinate = isPositive == true ? coordinate + subCoordinatePos : coordinate - subCoordinatePos;
+        x1 = isX == true ? subCoordinate : 0;
+        x2 = isX == true ? subCoordinate : windowDimensions.width;
+        y1 = isX == false ? subCoordinate : 0;
+        y2 = isX == false ? subCoordinate : windowDimensions.height;
         drawLine(x1, x2, y1, y2, 0.4, '#E8E8E8');
         i++;
     }
@@ -161,8 +158,8 @@ function calculateCoordinatesFromPx(xPx, yPx) {
     if (Math.sign(xPx) == -1 || Math.sign(yPx) == -1 || xPx > windowDimensions.width || yPx > windowDimensions.height) { //checks if pixels aren't negative/out of bounds
         return [null, null];
     } else {
-        var x = ((xPx - mdptX) / unitInterval.pxPerUnit) + coordinates.x; //moves x's 0 value from top left to center
-        var y = (((yPx * -1) + mdptY) / unitInterval.pxPerUnit) + coordinates.y; //moves y's 0 value from top left to center
+        var x = ((xPx - mdptX) / interval.pxPerUnit) + coordinates.x; //moves x's 0 value from top left to center
+        var y = (((yPx * -1) + mdptY) / interval.pxPerUnit) + coordinates.y; //moves y's 0 value from top left to center
 
         return [x, y];
     }
@@ -172,8 +169,8 @@ function calculatePxFromCoordinates(x, y) {
     var mdptX = windowDimensions.width / 2;
     var mdptY = windowDimensions.height / 2;
 
-    var xPx = ((x - coordinates.x) * unitInterval.pxPerUnit) + mdptX; //moves xPx's 0 value back to top left, pixels can't be negative, must be cast to positive number
-    var yPx = (((y - coordinates.y) * unitInterval.pxPerUnit) - mdptY) * -1; //moves yPx's 0 value back to top left
+    var xPx = ((x - coordinates.x) * interval.pxPerUnit) + mdptX; //moves xPx's 0 value back to top left, pixels can't be negative, must be cast to positive number
+    var yPx = (((y - coordinates.y) * interval.pxPerUnit) - mdptY) * -1; //moves yPx's 0 value back to top left
 
     if (Math.sign(xPx) == -1 || Math.sign(yPx) == -1 || xPx > windowDimensions.width || yPx > windowDimensions.height) {
         return [null, null];
@@ -202,8 +199,8 @@ document.addEventListener('wheel', (e) => {
         coordinates.z.fraction--;
         handleZFractionLoop();
     }
-    var deltaXUnits = unitInterval.count.xValue * unitInterval.base * unitInterval.tenthExponent; //Net X Units
-    unitInterval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
+    var deltaXUnits = interval.count.xValue * interval.base * interval.tenthExponent; //Net X Units
+    interval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
     renderGrid();
 });
 
@@ -224,12 +221,12 @@ function calculateIntervalBase() {
     var zBaseRemainder = coordinates.z.base % 3;
     switch (zBaseRemainder) {
         case 0:
-            unitInterval.base = 1;
+            interval.base = 1;
             calculateIntervalExponent(zBaseRemainder); //when moving from interval base of 5 -> 1
         case 1:
-            unitInterval.base = 2;
+            interval.base = 2;
         case 2:
-            unitInterval.base = 5;
+            interval.base = 5;
             calculateIntervalExponent(zBaseRemainder); //when moving from interval base of 1 -> 5
         default:
             //do nothings
@@ -237,13 +234,13 @@ function calculateIntervalBase() {
 }
 
 function setIntervalCount() {
-    unitInterval.count.xValue = unitInterval.count.initialValue + coordinates.z.fraction * unitInterval.count.rateOfChange; //causes fractal effect when zooming out
-    unitInterval.count.yValue = (windowDimensions.height / windowDimensions.width) * unitInterval.count.xValue; //formula for deltaY
+    interval.count.xValue = interval.count.initialValue + coordinates.z.fraction * interval.count.rateOfChange; //causes fractal effect when zooming out
+    interval.count.yValue = (windowDimensions.height / windowDimensions.width) * interval.count.xValue; //formula for deltaY
 }
 
 function calculateIntervalExponent(remainder) {
     var defaultZDifference = coordinates.z.base - coordinates.z.initialBase - remainder; //remainder is minused to "round" to the 1st factor of 3 below the current base.
-    unitInterval.tenthExponent = 10 ** (defaultZDifference / 3);
+    interval.tenthExponent = 10 ** (defaultZDifference / 3);
 }
 
 function setCanvasDimensions() {
