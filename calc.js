@@ -19,7 +19,9 @@ var interval = {
         initialValue: 10,
         rateOfChange: 1,
         xValue: 0, //derived from initialValue + zFraction * rateOfChange
-        yValue: 0 // y's value is derived from x's value, therefore initial y.value is 0
+        yValue: 0, // y's value is derived from x's value, therefore initial y.value is 0
+        xTextOnY0Axis: true, //flag for rendering x interval's on y = 0 or on horizontal sides of window
+        yTextOnX0Axis: true //flag for rendering y interval's on x = 0 or on vertical sides of window
     },
     pxPerUnit: 0
 }
@@ -42,7 +44,6 @@ window.onload = () => {
     setCanvasDimensions();
     gridSetUp();
     renderGrid();
-    testCanvasText()
 }
 
 //fires dragEvent;
@@ -96,12 +97,15 @@ function renderGrid() {
     var subIntervalCount;
     var i = 0;
     var j = 0;
+    interval.xTextOnY0Axis = false;
+    interval.yTextOnX0Axis = false;
     if (tempInterval % (2 * interval.tenthExponent) == 0) { //calculates 
         subIntervalCount = 4;
     } else {
         subIntervalCount = 5;
     }
-    while (i <= (unitIntervalCount / 2) + 1) {
+    //2 while loops used to keep z-index of intersecting lines consistent
+    while (i <= (unitIntervalCount / 2) + 1) { 
         let xPositiveCoordinates = calculatePxFromCoordinates((xOffset + (tempInterval * i)), coordinates.y);  
         let xNegativeCoordinates = calculatePxFromCoordinates((xOffset - (tempInterval * i)), coordinates.y); 
         let yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset + (tempInterval * i))); 
@@ -117,20 +121,47 @@ function renderGrid() {
         let xNegativeCoordinates = calculatePxFromCoordinates((xOffset - (tempInterval * j)), coordinates.y);
         let yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset + (tempInterval * j)));
         let yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset - (tempInterval * j)));
-        renderAxis(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, '#A9A9A9'); //renders positive(relative to mdpt) x values
-        renderAxis(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, '#A9A9A9'); //renders negative(relative to mdpt) x values
-        renderAxis(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], '#A9A9A9'); //renders positive(relative to mdtp) y values 
-        renderAxis(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], '#A9A9A9'); //renders negative(relatvie to mdpt) y values
+        renderAxis(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, (xOffset + (tempInterval * j)), true); //renders positive(relative to mdpt) x values
+        renderAxis(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, (xOffset - (tempInterval * j)), true); //renders negative(relative to mdpt) x values
+        renderAxis(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], (yOffset + (tempInterval * j)), false); //renders positive(relative to mdtp) y values 
+        renderAxis(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], (yOffset - (tempInterval * j)), false); //renders negative(relatvie to mdpt) y values
         j++
     }
 }
 
-function renderAxis(x1, x2, y1, y2, color) {
+function renderAxis(x1, x2, y1, y2, coordinate, isX) {
     if (x1 == null || x2 == null || y1 == null || y2 == null) {
         return; //do nothing
     }
-    drawLine(x1, x2, y1, y2, 1, color)
+    if(coordinate == 0) {
+        drawLine(x1, x2, y1, y2, 1, 'black');
+        if(isX) {
+            interval.xTextOnY0Axis = true;
+            console.log("x");
+            return;
+        } 
+        interval.yTextOnX0Axis = true;
+        console.log("D");
+        return;
+    }
+    drawLine(x1, x2, y1, y2, 1, '#A9A9A9');
+
 }
+
+function drawIntervalText(intervalBase, x, y) {
+    const ctx = canvas.getCtx();
+    ctx.scale(2, 2)
+    ctx.font = 9 + "px Verdana";
+    if(interval.tenthExponent >= 1000000) {
+        ctx.fillText(intervalBase + " x10", x, y);
+        ctx.fillText(Math.log10(interval.tenthExponent), x + 25, y - 5);
+    } else {
+        ctx.fillText(intervalBase * interval.tenthExponent, x, y);
+    }
+    ctx.fillText("3", 65, 195) 
+    ctx.scale(1, 1)
+}
+
 
 function renderSubAxis(coordinate, subIntervalCount, isX, isPositive) {
     const tempInterval = interval.base * interval.tenthExponent;
@@ -262,24 +293,6 @@ function drawLine(x1, x2, y1, y2, lineWidth, lineColor) {
     ctx.lineWidth = lineWidth + 0.5;
     ctx.strokeStyle = lineColor;
     ctx.stroke();
-}
-
-function drawIntervalText(x, y) {
-    const ctx = canvas.getCtx();
-    ctx.scale(2, 2)
-    ctx.font = 9 + "px Verdana";
-    ctx.fillText(, 40, 200);
-    ctx.fillText("3", 65, 195) 
-    ctx.scale(1, 1)
-}
-
-function testCanvasText() {
-    const ctx = canvas.getCtx();
-    ctx.scale(2, 2)
-    ctx.font = 9 + "px Verdana";
-    ctx.fillText("2 x10", 40, 200);
-    ctx.fillText("3", 65, 195) 
-    ctx.scale(1, 1)
 }
 
 function clearCanvas() {
