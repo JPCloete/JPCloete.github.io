@@ -18,7 +18,7 @@ var interval = {
     count: {
         initialValue: 10,
         rateOfChange: 1,
-        xValue: 10, //derived from initialValue + zFraction * rateOfChange
+        xValue: 0, //derived from initialValue + zFraction * rateOfChange
         yValue: 0 // y's value is derived from x's value, therefore initial y.value is 0
     },
     pxPerUnit: 0
@@ -42,6 +42,7 @@ window.onload = () => {
     setCanvasDimensions();
     gridSetUp();
     renderGrid();
+    testCanvasText()
 }
 
 //fires dragEvent;
@@ -93,34 +94,34 @@ function renderGrid() {
     const yOffset = (roundedY - coordinates.y) + coordinates.y;
     var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? interval.count.xValue : interval.count.yValue; //interval.count.yValue used for when deltaY > deltaX 
     var subIntervalCount;
-    var subAxisFlag = true; //flag used to make subAxes render first then mainAxis so overlapping of lines are consistent
     var i = 0;
+    var j = 0;
     if (tempInterval % (2 * interval.tenthExponent) == 0) { //calculates 
         subIntervalCount = 4;
     } else {
         subIntervalCount = 5;
     }
     while (i <= (unitIntervalCount / 2) + 1) {
-        if (i >= (unitIntervalCount + 1) / 2 && subAxisFlag) { //loop resets(code has to be looped twice)
-            subAxisFlag = false;
-            i = 0; //reset loop 
-        }
-        let xPositiveCoordinates = calculatePxFromCoordinates((xOffset + (tempInterval * i)), coordinates.y);
-        let xNegativeCoordinates = calculatePxFromCoordinates((xOffset - (tempInterval * i)), coordinates.y);
-        let yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset + (tempInterval * i)));
-        let yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset - (tempInterval * i)));
-        if (subAxisFlag) {
-            renderSubAxis(xPositiveCoordinates[0], subIntervalCount, true, true);
-            renderSubAxis(xNegativeCoordinates[0], subIntervalCount, true, false);
-            renderSubAxis(yPositiveCoordinates[1], subIntervalCount, false, false);
-            renderSubAxis(yNegativeCoordinates[1], subIntervalCount, false, true);
-        } else {
-            renderAxis(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, '#A9A9A9'); //renders positive(relative to mdpt) x values
-            renderAxis(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, '#A9A9A9'); //renders negative(relative to mdpt) x values
-            renderAxis(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], '#A9A9A9'); //renders positive(relative to mdtp) y values 
-            renderAxis(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], '#A9A9A9'); //renders negative(relatvie to mdpt) y values
-        }
+        let xPositiveCoordinates = calculatePxFromCoordinates((xOffset + (tempInterval * i)), coordinates.y);  
+        let xNegativeCoordinates = calculatePxFromCoordinates((xOffset - (tempInterval * i)), coordinates.y); 
+        let yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset + (tempInterval * i))); 
+        let yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset - (tempInterval * i))); 
+        renderSubAxis(xPositiveCoordinates[0], subIntervalCount, true, true); //renders positive(relative to mdpt) x subValues
+        renderSubAxis(xNegativeCoordinates[0], subIntervalCount, true, false); //renders negative(relative to mdpt) x subValues
+        renderSubAxis(yPositiveCoordinates[1], subIntervalCount, false, false); //renders positive(relative to mdpt) y subValues
+        renderSubAxis(yNegativeCoordinates[1], subIntervalCount, false, true); //renders negative(relative to mdpt) y subValues
         i++;
+    }
+    while (j <= (unitIntervalCount / 2) + 1) {
+        let xPositiveCoordinates = calculatePxFromCoordinates((xOffset + (tempInterval * j)), coordinates.y);
+        let xNegativeCoordinates = calculatePxFromCoordinates((xOffset - (tempInterval * j)), coordinates.y);
+        let yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset + (tempInterval * j)));
+        let yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset - (tempInterval * j)));
+        renderAxis(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, '#A9A9A9'); //renders positive(relative to mdpt) x values
+        renderAxis(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, '#A9A9A9'); //renders negative(relative to mdpt) x values
+        renderAxis(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], '#A9A9A9'); //renders positive(relative to mdtp) y values 
+        renderAxis(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], '#A9A9A9'); //renders negative(relatvie to mdpt) y values
+        j++
     }
 }
 
@@ -129,9 +130,6 @@ function renderAxis(x1, x2, y1, y2, color) {
         return; //do nothing
     }
     drawLine(x1, x2, y1, y2, 1, color)
-    if (x2 !== windowDimensions.width) {
-        return; //end function
-    }
 }
 
 function renderSubAxis(coordinate, subIntervalCount, isX, isPositive) {
@@ -258,14 +256,30 @@ window.addEventListener('resize', () => {
 
 function drawLine(x1, x2, y1, y2, lineWidth, lineColor) {
     const ctx = canvas.getCtx();
-    ctx.font = "12  px Arial";
-    ctx.fillText("2 x10^3", 10, 50);
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.lineWidth = lineWidth + 0.5;
     ctx.strokeStyle = lineColor;
     ctx.stroke();
+}
+
+function drawIntervalText(x, y) {
+    const ctx = canvas.getCtx();
+    ctx.scale(2, 2)
+    ctx.font = 9 + "px Verdana";
+    ctx.fillText(, 40, 200);
+    ctx.fillText("3", 65, 195) 
+    ctx.scale(1, 1)
+}
+
+function testCanvasText() {
+    const ctx = canvas.getCtx();
+    ctx.scale(2, 2)
+    ctx.font = 9 + "px Verdana";
+    ctx.fillText("2 x10", 40, 200);
+    ctx.fillText("3", 65, 195) 
+    ctx.scale(1, 1)
 }
 
 function clearCanvas() {
