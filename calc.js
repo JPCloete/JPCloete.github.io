@@ -180,14 +180,11 @@ function calculatePxFromCoordinates(x, y) {
 }
 
 function calculateDragNewMdpt(y2, y1, x2, x1) {
-    var y = y2 - y1;
+    var y = y2 - y1;    
     var x = x2 - x1;
     coordinates.y = coordinates.y + y;
     coordinates.x = coordinates.x + x;
 }
-
-
-
 
 //1.Increment z.fraction depending on zoomin / -out
 //2.handle zoomin / -out looping with handleZFractionLoop function eg -> 7.9 => 8.0(zoomout) || 91.0 => 90.9(zoomin)
@@ -195,20 +192,34 @@ function calculateDragNewMdpt(y2, y1, x2, x1) {
 //4.If remainder is 0(base = 1[min]) or 2(base = 5[max]) calculate the tenthExponent of the interval
 //5.Set pxPerUnit value(VERY IMPORTANT!!!)
 document.addEventListener('wheel', (e) => {
+    let posX = e.pageX; //browser's x pixels
+    let posY = e.pageY; //browser's y pixels
+    let oldHoverCoordinates = calculateCoordinatesFromPx(posX, posY);
+    console.log(oldHoverCoordinates[1])
     if (e.deltaY == 100) { //deltaY = 100 if mouseWheelUp
         coordinates.z.fraction++;
-        handleZFractionLoop();
+        initZoomEvent(oldHoverCoordinates, posX, posY, false);
     } else if (e.deltaY == -100) { //deltaY = -100 if mouseWheelDown
         coordinates.z.fraction--;
-        handleZFractionLoop();
+        initZoomEvent(oldHoverCoordinates, posX, posY, true)
     }
-    setIntervalCount();
-    var deltaXUnits = interval.count.xValue * interval.base * interval.tenthExponent; //Net X Units
-    interval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations IMPORTANT NEED TO CHANGE FORMULA
-    console.log(deltaXUnits);
     renderGrid();
 });
 
+function initZoomEvent(oldHoverCoordinates, posX, posY, isZoomIn) {
+    handleZFractionLoop();
+    setIntervalCount();
+    gridSetUp(); //need to run this before getting the new hoverCoordinates
+    let newHoverCoordinates = calculateCoordinatesFromPx(posX, posY);
+    calculateMdptFromHoverpointZoom(oldHoverCoordinates, newHoverCoordinates, isZoomIn)
+}
+
+function calculateMdptFromHoverpointZoom(oldHoverCoordinates, newHoverCoordinates, isZoomIn) {
+    let hoverOffsetX = oldHoverCoordinates[0] - newHoverCoordinates[0];
+    let hoverOffsetY = oldHoverCoordinates[1] - newHoverCoordinates[1];
+    coordinates.x += hoverOffsetX;
+    coordinates.y += hoverOffsetY;
+}
 
 var coordinates = {
     x: 0,
@@ -238,18 +249,6 @@ var interval = {
     pxPerUnit: 0
 }
 
-function calculateMdptFromHoverpointZoom(e) {
-    e = e || window.event;
-    let posX = e.pageX; //browser's x pixels
-    let posY = e.pageY; //browser's y pixels
-    let hoverCoordinates = calculateCoordinatesFromPx(posX, posY);
-    let xOffset = (hoverCoordinates[0] * interval.pxPerUnit) + (windowDimensions.width / 2);
-    let yOffset = (hoverCoordinates[1] * interval.pxPerUnit) + (windowDimensions.height / 2);
-    let newMdpt = calculateCoordinatesFromPx(xOffset, yOffset);
-    coordinates.x = newMdpt[0];
-    coordinates.y = newMdpt[1];
-    console.log(newMdpt[0])
-}
 
 function handleZFractionLoop() {
     if (coordinates.z.fraction == 10) { //handles zoom out looping
