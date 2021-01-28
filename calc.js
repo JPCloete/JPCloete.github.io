@@ -1,8 +1,35 @@
+var coordinates = {
+    x: 0,
+    y: 0,
+    z: {
+        initialBase: 9,
+        base: 9,
+        fraction: 0
+    },
+    hoverPoint: {
+        x: 0,
+        y: 0
+    }
+}
 
+var interval = {
+    base: 0,
+    tenthExponent: 0,
+    count: {
+        initialValue: 10,
+        rateOfChange: 1.2,
+        xValue: 0, //derived from initialValue + zFraction * rateOfChange
+        yValue: 0, // y's value is derived from x's value, therefore initial y.value is 0
+        xTextOnY0Axis: true, //flag for rendering x interval's on y = 0 if true or on horizontal sides of window if false
+        yTextOnX0Axis: true //flag for rendering y interval's on x = 0 if true or on vertical sides of window if false
+    },
+    pxPerUnit: 0
+}
 
 var windowDimensions = {
     width: window.innerWidth,
-    height: window.innerHeight
+    height: window.innerHeight,
+    dpi: window.devicePixelRatio
 }
 
 var canvas = {
@@ -22,7 +49,7 @@ window.onload = () => {
 }
 
 //fires dragEvent;
-document.onmousedown = () => {
+window.onmousedown = () => {
     dragEvent();
 }
 
@@ -32,6 +59,7 @@ function gridSetUp() {
     windowDimensions.height = window.innerHeight;
     setCanvasDimensions();
     calculateIntervalBase();
+    setIntervalCount();
     var deltaXUnits = interval.count.xValue * interval.base * interval.tenthExponent; //Net X Units
     interval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
 }
@@ -42,14 +70,14 @@ function dragEvent(e) {
     e.preventDefault();
     posX = e.clientX; //browser's x pixels
     posY = e.clientY; //browser's y pixels
-    document.onmouseup = () => { //clears event after mouse button has been released
-        document.onmouseup = null;
-        document.onmousemove = null;
+    window.onmouseup = () => { //clears event after mouse button has been released
+        window.onmouseup = null;
+        window.onmousemove = null;
     }
-    document.onmousemove = (e) => { //drag party of drag event ;)
+    window.onmousemove = (e) => { //drag party of drag event ;)
         posXDifference = e.clientX - posX;
         posYDifference = e.clientY - posY;
-        if (Math.abs(posXDifference) + Math.abs(posYDifference) > 5) { //makes rerendering less frequent to improve performance
+        if (Math.abs(posXDifference) + Math.abs(posYDifference) > 1) { //makes rerendering less frequent to improve performance
             var currentCoordinates = calculateCoordinatesFromPx(e.clientX, e.clientY); //get current coordinates
             var prevCoordinates = calculateCoordinatesFromPx(posX, posY); //get previousCoordinates
             if (currentCoordinates != null && prevCoordinates != null) {
@@ -109,14 +137,17 @@ function renderAxis(x1, x2, y1, y2, coordinate, isX) {
         return; //do nothing
     }
     if(coordinate == 0) {
-        drawLine(x1, x2, y1, y2, 1, 'black');
+        drawLine(x1, x2, y1, y2, 1, "black");
         if(isX) {
             interval.xTextOnY0Axis = true;
         } else {
             interval.yTextOnX0Axis = true;
         }
     } else {
-        drawLine(x1, x2, y1, y2, 1, '#A9A9A9');
+        drawLine(x1, x2, y1, y2, 1, "#A9A9A9");
+    }
+    if(interval.xTextOnY0Axis) {
+
     }
 }
 
@@ -147,7 +178,7 @@ function renderSubAxis(coordinate, subIntervalCount, isX, isPositive) {
         x2 = isX == true ? subCoordinate : windowDimensions.width;
         y1 = isX == false ? subCoordinate : 0;
         y2 = isX == false ? subCoordinate : windowDimensions.height;
-        drawLine(x1, x2, y1, y2, 0.4, '#E8E8E8');
+        drawLine(x1, x2, y1, y2, 1, "#E8E8E8");
         i++;
     }
 }
@@ -191,64 +222,34 @@ function calculateDragNewMdpt(y2, y1, x2, x1) {
 //3.calculate the base of the interval based on remainder(remainder = base % 3)
 //4.If remainder is 0(base = 1[min]) or 2(base = 5[max]) calculate the tenthExponent of the interval
 //5.Set pxPerUnit value(VERY IMPORTANT!!!)
-document.addEventListener('wheel', (e) => {
+window.addEventListener('wheel', (e) => {
     let posX = e.pageX; //browser's x pixels
     let posY = e.pageY; //browser's y pixels
     let oldHoverCoordinates = calculateCoordinatesFromPx(posX, posY);
-    console.log(oldHoverCoordinates[1])
     if (e.deltaY == 100) { //deltaY = 100 if mouseWheelUp
         coordinates.z.fraction++;
-        initZoomEvent(oldHoverCoordinates, posX, posY, false);
+        initZoomEvent(oldHoverCoordinates, posX, posY);
     } else if (e.deltaY == -100) { //deltaY = -100 if mouseWheelDown
         coordinates.z.fraction--;
-        initZoomEvent(oldHoverCoordinates, posX, posY, true)
+        initZoomEvent(oldHoverCoordinates, posX, posY)
     }
     renderGrid();
 });
 
-function initZoomEvent(oldHoverCoordinates, posX, posY, isZoomIn) {
+function initZoomEvent(oldHoverCoordinates, posX, posY) {
     handleZFractionLoop();
     setIntervalCount();
     gridSetUp(); //need to run this before getting the new hoverCoordinates
     let newHoverCoordinates = calculateCoordinatesFromPx(posX, posY);
-    calculateMdptFromHoverpointZoom(oldHoverCoordinates, newHoverCoordinates, isZoomIn)
+    calculateMdptFromHoverpointZoom(oldHoverCoordinates, newHoverCoordinates)
 }
 
-function calculateMdptFromHoverpointZoom(oldHoverCoordinates, newHoverCoordinates, isZoomIn) {
+function calculateMdptFromHoverpointZoom(oldHoverCoordinates, newHoverCoordinates) {
     let hoverOffsetX = oldHoverCoordinates[0] - newHoverCoordinates[0];
     let hoverOffsetY = oldHoverCoordinates[1] - newHoverCoordinates[1];
     coordinates.x += hoverOffsetX;
     coordinates.y += hoverOffsetY;
 }
-
-var coordinates = {
-    x: 0,
-    y: 0,
-    z: {
-        initialBase: 9,
-        base: 9,
-        fraction: 0
-    },
-    hoverPoint: {
-        x: 0,
-        y: 0
-    }
-}
-
-var interval = {
-    base: 0,
-    tenthExponent: 0,
-    count: {
-        initialValue: 10,
-        rateOfChange: 1,
-        xValue: 0, //derived from initialValue + zFraction * rateOfChange
-        yValue: 0, // y's value is derived from x's value, therefore initial y.value is 0
-        xTextOnY0Axis: true, //flag for rendering x interval's on y = 0 or on horizontal sides of window
-        yTextOnX0Axis: true //flag for rendering y interval's on x = 0 or on vertical sides of window
-    },
-    pxPerUnit: 0
-}
-
 
 function handleZFractionLoop() {
     if (coordinates.z.fraction == 10) { //handles zoom out looping
@@ -293,14 +294,11 @@ function calculateIntervalExponent(remainder) {
 }
 
 function setCanvasDimensions() {
-    canvas.htmlElement.height = windowDimensions.height;
     canvas.htmlElement.width = windowDimensions.width;
-    canvas.width = windowDimensions.width;
-    canvas.height = windowDimensions.height;
+    canvas.htmlElement.height = windowDimensions.height
 }
 
 window.addEventListener('resize', () => {
-    setCanvasDimensions();
     gridSetUp();
     renderGrid();
 });
@@ -308,9 +306,9 @@ window.addEventListener('resize', () => {
 function drawLine(x1, x2, y1, y2, lineWidth, lineColor) {
     const ctx = canvas.getCtx();
     ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.lineWidth = lineWidth + 0.5;
+    ctx.moveTo(x1 + 0.5, y1);
+    ctx.lineTo(x2 + 0.5, y2);
+    ctx.lineWidth = lineWidth + 0.2;
     ctx.strokeStyle = lineColor;
     ctx.stroke();
 }
