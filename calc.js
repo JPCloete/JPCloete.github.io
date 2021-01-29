@@ -146,9 +146,6 @@ function renderAxis(x1, x2, y1, y2, coordinate, isX) {
     } else {
         drawLine(x1, x2, y1, y2, 1, "#A9A9A9");
     }
-    if(interval.xTextOnY0Axis) {
-
-    }
 }
 
 function drawIntervalText(intervalBase, x, y) {
@@ -306,9 +303,18 @@ window.addEventListener('resize', () => {
 function drawLine(x1, x2, y1, y2, lineWidth, lineColor) {
     const ctx = canvas.getCtx();
     ctx.beginPath();
-    ctx.moveTo(x1 + 0.5, y1);
-    ctx.lineTo(x2 + 0.5, y2);
-    ctx.lineWidth = lineWidth + 0.2;
+    if(y1 == y2) {
+        x1 = Math.round(x1) + 0.5;
+        x2 = Math.round(x2) +  0.5;
+        y1 = Math.round(y1) + 0.5;
+        y2 = Math.round(y2) + 0.5;
+    } else if(x1 == x2) {
+        x1 = Math.round(x1) + 0.5;
+        x2 = Math.round(x2) + 0.5;
+    }
+    ctx.moveTo(x1, y1); 
+    ctx.lineTo(x2, y2);
+    ctx.lineWidth = lineWidth;
     ctx.strokeStyle = lineColor;
     ctx.stroke();
 }
