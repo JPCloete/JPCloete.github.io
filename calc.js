@@ -2,8 +2,9 @@ var coordinates = {
     x: 0,
     y: 0,
     z: {
-        initialBase: 0,
-        base: 0, //base is negative when zooming in past base 0 unit
+        //base is a relative unit to determine interval size. Factors of 3 to allow 3 bases(1, 2, 5), 45 allows zoomining in to a factor of 10e-15 and zooming out to a factor of 10e21
+        initialBase: 45, 
+        base: 45, 
         fraction: 5
     },
     hoverPoint: {
@@ -53,6 +54,7 @@ window.onmousedown = () => {
 }
 
 function gridSetUp() {
+    console.log(interval.base * interval.tenthExponent);
     clearCanvas();
     windowDimensions.width = window.innerWidth;
     windowDimensions.height = window.innerHeight;
@@ -219,10 +221,10 @@ window.addEventListener('wheel', (e) => {
     let posX = e.pageX; //browser's x pixels
     let posY = e.pageY; //browser's y pixels
     let oldHoverCoordinates = calculateCoordinatesFromPx(posX, posY);
-    if (e.deltaY == 100) { //deltaY = 100 if mouseWheelUp
+    if (e.deltaY == 100 && coordinates.z.base != 110) { //deltaY = 100 if mouseWheelUp
         coordinates.z.fraction++;
         initZoomEvent(oldHoverCoordinates, posX, posY);
-    } else if (e.deltaY == -100) { //deltaY = -100 if mouseWheelDown
+    } else if (e.deltaY == -100 && coordinates.z.base != 0) { //deltaY = -100 if mouseWheelDown
         coordinates.z.fraction--;
         initZoomEvent(oldHoverCoordinates, posX, posY)
     }
@@ -263,23 +265,17 @@ function setIntervalCount() {
 
 function calculateIntervalBase() {
     var zBaseRemainder = coordinates.z.base % 3;
-    var tempRemainder = zBaseRemainder;
-    if(coordinates.z.base <= -1) {
-        zBaseRemainder = Math.abs(Math.abs(zBaseRemainder) - 2);
-    }
-    console.log(coordinates.z.base % 3)
-    console.log(zBaseRemainder); 
     switch (zBaseRemainder) {
         case 0:
             interval.base = 1;
-            calculateIntervalExponent(tempRemainder); //when moving from interval base of 5 -> 1
+            calculateIntervalExponent(zBaseRemainder); //when moving from interval base of 5 -> 1
             return;
         case 1:
             interval.base = 2;
             return;
         case 2:
             interval.base = 5;
-            calculateIntervalExponent(tempRemainder); //when moving from interval base of 1 -> 5
+            calculateIntervalExponent(zBaseRemainder); //when moving from interval base of 1 -> 5
             return;
         default:
             return; //do nothing
