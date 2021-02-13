@@ -2,9 +2,9 @@ var coordinates = {
     x: 0,
     y: 0,
     z: {
-        initialBase: 9,
-        base: 9,
-        fraction: 0
+        initialBase: 0,
+        base: 0, //base is negative when zooming in past base 0 unit
+        fraction: 5
     },
     hoverPoint: {
         x: 0,
@@ -13,11 +13,11 @@ var coordinates = {
 }
 
 var interval = {
-    base: 0,
-    tenthExponent: 0,
+    base: 1,
+    tenthExponent: 1,
     count: {
         initialValue: 10,
-        rateOfChange: 1.2,
+        rateOfChange: 0.7,
         xValue: 0, //derived from initialValue + zFraction * rateOfChange
         yValue: 0, // y's value is derived from x's value, therefore initial y.value is 0
         xTextOnY0Axis: true, //flag for rendering x interval's on y = 0 if true or on horizontal sides of window if false
@@ -28,8 +28,7 @@ var interval = {
 
 var windowDimensions = {
     width: window.innerWidth,
-    height: window.innerHeight,
-    dpi: window.devicePixelRatio
+    height: window.innerHeight
 }
 
 var canvas = {
@@ -58,7 +57,6 @@ function gridSetUp() {
     windowDimensions.width = window.innerWidth;
     windowDimensions.height = window.innerHeight;
     setCanvasDimensions();
-    calculateIntervalBase();
     setIntervalCount();
     var deltaXUnits = interval.count.xValue * interval.base * interval.tenthExponent; //Net X Units
     interval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
@@ -96,7 +94,7 @@ function renderGrid() {
     const roundedY = roundToInterval(coordinates.y, tempInterval);
     const xOffset = (roundedX - coordinates.x) + coordinates.x;
     const yOffset = (roundedY - coordinates.y) + coordinates.y;
-    var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? interval.count.xValue : interval.count.yValue; //interval.count.yValue used for when deltaY > deltaX 
+    var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? interval.count.xValue : interval.count.yValue; //interval.count.yValue used for when deltaY > deltaX(browser height > width)
     var subIntervalCount;
     var i = 0;
     var j = 0;
@@ -144,7 +142,10 @@ function renderAxis(x1, x2, y1, y2, coordinate, isX) {
             interval.yTextOnX0Axis = true;
         }
     } else {
-        drawLine(x1, x2, y1, y2, 1, "#A9A9A9");
+        drawLine(x1, x2, y1, y2, 1, "#989898");
+    }
+    if(isX && interval.xTextOnY0Axis == true) {
+        
     }
 }
 
@@ -175,7 +176,7 @@ function renderSubAxis(coordinate, subIntervalCount, isX, isPositive) {
         x2 = isX == true ? subCoordinate : windowDimensions.width;
         y1 = isX == false ? subCoordinate : 0;
         y2 = isX == false ? subCoordinate : windowDimensions.height;
-        drawLine(x1, x2, y1, y2, 1, "#E8E8E8");
+        drawLine(x1, x2, y1, y2, 1, "#E0E0E0");
         i++;
     }
 }
@@ -214,11 +215,6 @@ function calculateDragNewMdpt(y2, y1, x2, x1) {
     coordinates.x = coordinates.x + x;
 }
 
-//1.Increment z.fraction depending on zoomin / -out
-//2.handle zoomin / -out looping with handleZFractionLoop function eg -> 7.9 => 8.0(zoomout) || 91.0 => 90.9(zoomin)
-//3.calculate the base of the interval based on remainder(remainder = base % 3)
-//4.If remainder is 0(base = 1[min]) or 2(base = 5[max]) calculate the tenthExponent of the interval
-//5.Set pxPerUnit value(VERY IMPORTANT!!!)
 window.addEventListener('wheel', (e) => {
     let posX = e.pageX; //browser's x pixels
     let posY = e.pageY; //browser's y pixels
@@ -261,27 +257,32 @@ function handleZFractionLoop() {
 }
 
 function setIntervalCount() {
-    interval.count.xValue = interval.count.initialValue + coordinates.z.fraction * interval.count.rateOfChange; //causes fractal effect when zooming out
+    interval.count.xValue = interval.count.initialValue + coordinates.z.fraction;
     interval.count.yValue = (windowDimensions.height / windowDimensions.width) * interval.count.xValue; //formula for deltaY
 }
 
 function calculateIntervalBase() {
     var zBaseRemainder = coordinates.z.base % 3;
+    var tempRemainder = zBaseRemainder;
+    if(coordinates.z.base <= -1) {
+        zBaseRemainder = Math.abs(Math.abs(zBaseRemainder) - 2);
+    }
+    console.log(coordinates.z.base % 3)
+    console.log(zBaseRemainder); 
     switch (zBaseRemainder) {
         case 0:
             interval.base = 1;
-            calculateIntervalExponent(zBaseRemainder); //when moving from interval base of 5 -> 1
+            calculateIntervalExponent(tempRemainder); //when moving from interval base of 5 -> 1
             return;
         case 1:
             interval.base = 2;
             return;
         case 2:
             interval.base = 5;
-            calculateIntervalExponent(zBaseRemainder); //when moving from interval base of 1 -> 5
+            calculateIntervalExponent(tempRemainder); //when moving from interval base of 1 -> 5
             return;
         default:
-            return;
-            //do nothings
+            return; //do nothing
     }
 }
 
@@ -303,14 +304,11 @@ window.addEventListener('resize', () => {
 function drawLine(x1, x2, y1, y2, lineWidth, lineColor) {
     const ctx = canvas.getCtx();
     ctx.beginPath();
+    x1 = Math.round(x1) + 0.5;
+    x2 = Math.round(x2) + 0.5;
     if(y1 == y2) {
-        x1 = Math.round(x1) + 0.5;
-        x2 = Math.round(x2) +  0.5;
         y1 = Math.round(y1) + 0.5;
         y2 = Math.round(y2) + 0.5;
-    } else if(x1 == x2) {
-        x1 = Math.round(x1) + 0.5;
-        x2 = Math.round(x2) + 0.5;
     }
     ctx.moveTo(x1, y1); 
     ctx.lineTo(x2, y2);
