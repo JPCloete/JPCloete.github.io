@@ -2,9 +2,8 @@ var coordinates = {
     x: 0,
     y: 0,
     z: {
-        //base is a relative unit to determine interval size. Factors of 3 to allow 3 bases(1, 2, 5), 45 allows zoomining in to a factor of 10e-15 and zooming out to a factor of 10e21
-        initialBase: 45,
-        base: 45,
+        initialBase: 45, 
+        base: 45, //base is a relative unit to determine interval size. Factors of 3 to allow 3 bases(1, 2, 5), value of 45 allows zooming in to a factor of 10e-15 and zooming out to a factor of 10e21
         fraction: 5
     },
     hoverPoint: {
@@ -40,16 +39,14 @@ var canvas = {
     }
 }
 
-//calculates initial values and draws grid.
-window.onload = () => {
+window.onload = () => { //calculates initial values and draws grid
     setCanvasDimensions();
     gridSetUp();
     setIntervalCount();
     renderGrid();
 }
 
-//fires dragEvent;
-window.onmousedown = () => {
+window.onmousedown = () => { //fires dragEvent
     dragEvent();
 }
 
@@ -63,16 +60,15 @@ function gridSetUp() {
     interval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
 }
 
-//custom event(hold mouse button 1 and drag)
-function dragEvent(e) {
-    e = e || window.event;
-    e.preventDefault();
-    posX = e.clientX; //browser's x pixels
-    posY = e.clientY; //browser's y pixels
+function dragEvent(e) { //custom event(hold mouse button 1 and drag)
     window.onmouseup = () => { //clears event after mouse button has been released
         window.onmouseup = null;
         window.onmousemove = null;
     }
+    e = e || window.event;
+    e.preventDefault();
+    posX = e.clientX; //browser's x pixels
+    posY = e.clientY; //browser's y pixels
     window.onmousemove = (e) => { //drag party of drag event ;)
         posXDifference = e.clientX - posX;
         posYDifference = e.clientY - posY;
@@ -91,27 +87,24 @@ function dragEvent(e) {
 function renderGrid() {
     gridSetUp();
     const gridInterval = interval.base * interval.tenthExponent;
-    const roundedX = roundToInterval(coordinates.x, gridInterval);
-    const roundedY = roundToInterval(coordinates.y, gridInterval);
-    const xOffset = (roundedX - coordinates.x) + coordinates.x;
-    const yOffset = (roundedY - coordinates.y) + coordinates.y;
-    var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? interval.count.xValue : interval.count.yValue; //interval.count.yValue used for when deltaY > deltaX(browser height > width)
-    var subIntervalCount = gridInterval % (2 * interval.tenthExponent) == 0 ? 4 : 5; //calculates how many subIntervals should be between each interval (4 if base is 2; 5 if base is 1 || 5);
+    const xOffset = roundToInterval(coordinates.x, gridInterval);
+    const yOffset = roundToInterval(coordinates.y, gridInterval);
+    const unitIntervalCount = windowDimensions.width >= windowDimensions.height ? interval.count.xValue : interval.count.yValue; //interval.count.yValue used for when deltaY > deltaX(browser height > width)
+    const subIntervalCount = gridInterval % (2 * interval.tenthExponent) == 0 ? 4 : 5; //calculates how many subIntervals should be between each interval (4 if base is 2; 5 if base is 1 || 5);
     var i = 0;
     var j = 0;
     var coordinateRefArr = [];
     var xCoordinateRef = calculatePxFromCoordinates(xOffset, coordinates.y);
     var yCoordinateRef = calculatePxFromCoordinates(coordinates.x, yOffset);
-    const coordinatePxDifference = xCoordinateRef[0] - calculatePxFromCoordinates(xOffset - gridInterval, coordinates.y)[0];
+    const coordinatePxDifference = xCoordinateRef[0] - calculatePxFromCoordinates(xOffset - gridInterval, coordinates.y)[0]; //calculates distance in px between each interval
     coordinateRefArr.push(xCoordinateRef[0]);
     coordinateRefArr.push(xCoordinateRef[0]);
     coordinateRefArr.push(yCoordinateRef[1]);
     coordinateRefArr.push(yCoordinateRef[1]);
-    var dupCoordinateRefArr = coordinateRefArr.slice();
+    var dupCoordinateRefArr = coordinateRefArr.slice(); //creates duplicate coordinateRefArr instance
     interval.xTextOnY0Axis = false;
     interval.yTextOnX0Axis = false;
-    //2 while loops used to keep z-index of intersecting lines consistent
-    while (i <= (unitIntervalCount / 2) + 1) {
+    while (i <= (unitIntervalCount / 2) + 1) { //2 while loops used to keep z-index of intersecting lines consistent
         renderSubAxis(coordinateRefArr[0], subIntervalCount, true, true); //renders positive(relative to mdpt) x subValues
         renderSubAxis(coordinateRefArr[1], subIntervalCount, true, false); //renders negative(relative to mdpt) x subValues
         renderSubAxis(coordinateRefArr[2], subIntervalCount, false, false); //renders positive(relative to mdpt) y subValues
@@ -261,7 +254,7 @@ function handleZFractionLoop() {
 
 function setIntervalCount() {
     interval.count.xValue = interval.count.initialValue + coordinates.z.fraction;
-    interval.count.yValue = (windowDimensions.height / windowDimensions.width) * interval.count.xValue; //formula for deltaY
+    interval.count.yValue = (windowDimensions.height / windowDimensions.width) * interval.count.xValue;
 }
 
 function calculateIntervalBase() {
@@ -322,9 +315,9 @@ function clearCanvas() {
 function roundToInterval(num, interval) {
     var remainder = num % interval;
     if (remainder >= interval / 2) {
-        num = num + (interval - remainder);
+        num += (interval - remainder);
     } else {
-        num = num - remainder;
+        num -= remainder;
     }
     return num;
 }
