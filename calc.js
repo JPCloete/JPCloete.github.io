@@ -3,8 +3,8 @@ var coordinates = {
     y: 0,
     z: {
         //base is a relative unit to determine interval size. Factors of 3 to allow 3 bases(1, 2, 5), 45 allows zoomining in to a factor of 10e-15 and zooming out to a factor of 10e21
-        initialBase: 45, 
-        base: 45, 
+        initialBase: 45,
+        base: 45,
         fraction: 5
     },
     hoverPoint: {
@@ -54,7 +54,6 @@ window.onmousedown = () => {
 }
 
 function gridSetUp() {
-    console.log(interval.base * interval.tenthExponent);
     clearCanvas();
     windowDimensions.width = window.innerWidth;
     windowDimensions.height = window.innerHeight;
@@ -91,43 +90,47 @@ function dragEvent(e) {
 
 function renderGrid() {
     gridSetUp();
-    const tempInterval = interval.base * interval.tenthExponent;
-    const roundedX = roundToInterval(coordinates.x, tempInterval);
-    const roundedY = roundToInterval(coordinates.y, tempInterval);
+    const gridInterval = interval.base * interval.tenthExponent;
+    const roundedX = roundToInterval(coordinates.x, gridInterval);
+    const roundedY = roundToInterval(coordinates.y, gridInterval);
     const xOffset = (roundedX - coordinates.x) + coordinates.x;
     const yOffset = (roundedY - coordinates.y) + coordinates.y;
     var unitIntervalCount = windowDimensions.width >= windowDimensions.height ? interval.count.xValue : interval.count.yValue; //interval.count.yValue used for when deltaY > deltaX(browser height > width)
-    var subIntervalCount;
+    var subIntervalCount = gridInterval % (2 * interval.tenthExponent) == 0 ? 4 : 5; //calculates how many subIntervals should be between each interval (4 if base is 2; 5 if base is 1 || 5);
     var i = 0;
     var j = 0;
+    var coordinateRefArr = [];
+    var xCoordinateRef = calculatePxFromCoordinates(xOffset, coordinates.y);
+    var yCoordinateRef = calculatePxFromCoordinates(coordinates.x, yOffset);
+    const coordinatePxDifference = xCoordinateRef[0] - calculatePxFromCoordinates(xOffset - gridInterval, coordinates.y)[0];
+    coordinateRefArr.push(xCoordinateRef[0]);
+    coordinateRefArr.push(xCoordinateRef[0]);
+    coordinateRefArr.push(yCoordinateRef[1]);
+    coordinateRefArr.push(yCoordinateRef[1]);
+    var dupCoordinateRefArr = coordinateRefArr.slice();
     interval.xTextOnY0Axis = false;
     interval.yTextOnX0Axis = false;
-    if (tempInterval % (2 * interval.tenthExponent) == 0) { //calculates 
-        subIntervalCount = 4;
-    } else {
-        subIntervalCount = 5;
-    }
     //2 while loops used to keep z-index of intersecting lines consistent
-    while (i <= (unitIntervalCount / 2) + 1) { 
-        let xPositiveCoordinates = calculatePxFromCoordinates((xOffset + (tempInterval * i)), coordinates.y);  
-        let xNegativeCoordinates = calculatePxFromCoordinates((xOffset - (tempInterval * i)), coordinates.y); 
-        let yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset + (tempInterval * i))); 
-        let yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset - (tempInterval * i))); 
-        renderSubAxis(xPositiveCoordinates[0], subIntervalCount, true, true); //renders positive(relative to mdpt) x subValues
-        renderSubAxis(xNegativeCoordinates[0], subIntervalCount, true, false); //renders negative(relative to mdpt) x subValues
-        renderSubAxis(yPositiveCoordinates[1], subIntervalCount, false, false); //renders positive(relative to mdpt) y subValues
-        renderSubAxis(yNegativeCoordinates[1], subIntervalCount, false, true); //renders negative(relative to mdpt) y subValues
+    while (i <= (unitIntervalCount / 2) + 1) {
+        renderSubAxis(coordinateRefArr[0], subIntervalCount, true, true); //renders positive(relative to mdpt) x subValues
+        renderSubAxis(coordinateRefArr[1], subIntervalCount, true, false); //renders negative(relative to mdpt) x subValues
+        renderSubAxis(coordinateRefArr[2], subIntervalCount, false, false); //renders positive(relative to mdpt) y subValues
+        renderSubAxis(coordinateRefArr[3], subIntervalCount, false, true); //renders negative(relative to mdpt) y subValues
+        coordinateRefArr[0] = coordinateRefArr[0] + coordinatePxDifference;
+        coordinateRefArr[1] = coordinateRefArr[1] - coordinatePxDifference;
+        coordinateRefArr[2] = coordinateRefArr[2] + coordinatePxDifference;
+        coordinateRefArr[3] = coordinateRefArr[3] - coordinatePxDifference;
         i++;
     }
     while (j <= (unitIntervalCount / 2) + 1) {
-        let xPositiveCoordinates = calculatePxFromCoordinates((xOffset + (tempInterval * j)), coordinates.y);
-        let xNegativeCoordinates = calculatePxFromCoordinates((xOffset - (tempInterval * j)), coordinates.y);
-        let yPositiveCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset + (tempInterval * j)));
-        let yNegativeCoordinates = calculatePxFromCoordinates(coordinates.x, (yOffset - (tempInterval * j)));
-        renderAxis(xPositiveCoordinates[0], xPositiveCoordinates[0], 0, windowDimensions.height, (xOffset + (tempInterval * j)), true); //renders positive(relative to mdpt) x values
-        renderAxis(xNegativeCoordinates[0], xNegativeCoordinates[0], 0, windowDimensions.height, (xOffset - (tempInterval * j)), true); //renders negative(relative to mdpt) x values
-        renderAxis(0, windowDimensions.width, yPositiveCoordinates[1], yPositiveCoordinates[1], (yOffset + (tempInterval * j)), false); //renders positive(relative to mdtp) y values 
-        renderAxis(0, windowDimensions.width, yNegativeCoordinates[1], yNegativeCoordinates[1], (yOffset - (tempInterval * j)), false); //renders negative(relatvie to mdpt) y values
+        renderAxis(dupCoordinateRefArr[0], dupCoordinateRefArr[0], 0, windowDimensions.height, (xOffset - (gridInterval * j)), true); //renders positive(relative to mdpt) x values
+        renderAxis(dupCoordinateRefArr[1], dupCoordinateRefArr[1], 0, windowDimensions.height, (xOffset + (gridInterval * j)), true); //renders negative(relative to mdpt) x values
+        renderAxis(0, windowDimensions.width, dupCoordinateRefArr[2], dupCoordinateRefArr[2], (yOffset + (gridInterval * j)), false); //renders positive(relative to mdtp) y values 
+        renderAxis(0, windowDimensions.width, dupCoordinateRefArr[3], dupCoordinateRefArr[3], (yOffset - (gridInterval * j)), false); //renders negative(relatvie to mdpt) y values
+        dupCoordinateRefArr[0] = dupCoordinateRefArr[0] - coordinatePxDifference;
+        dupCoordinateRefArr[1] = dupCoordinateRefArr[1] + coordinatePxDifference;
+        dupCoordinateRefArr[2] = dupCoordinateRefArr[2] - coordinatePxDifference;
+        dupCoordinateRefArr[3] = dupCoordinateRefArr[3] + coordinatePxDifference;
         j++
     }
 }
@@ -136,9 +139,9 @@ function renderAxis(x1, x2, y1, y2, coordinate, isX) {
     if (x1 == null || x2 == null || y1 == null || y2 == null) {
         return; //do nothing
     }
-    if(coordinate == 0) {
+    if (coordinate == 0) {
         drawLine(x1, x2, y1, y2, 1, "black");
-        if(isX) {
+        if (isX) {
             interval.xTextOnY0Axis = true;
         } else {
             interval.yTextOnX0Axis = true;
@@ -146,8 +149,8 @@ function renderAxis(x1, x2, y1, y2, coordinate, isX) {
     } else {
         drawLine(x1, x2, y1, y2, 1, "#989898");
     }
-    if(isX && interval.xTextOnY0Axis == true) {
-        
+    if (isX && interval.xTextOnY0Axis == true) {
+
     }
 }
 
@@ -155,7 +158,7 @@ function drawIntervalText(intervalBase, x, y) {
     const ctx = canvas.getCtx();
     ctx.scale(2, 2);
     ctx.font = 9 + "px Verdana";
-    if(interval.tenthExponent >= 1000000) {
+    if (interval.tenthExponent >= 1000000) {
         ctx.fillText(intervalBase + " x10", x, y);
         ctx.fillText(Math.log10(interval.tenthExponent), x + 25, y - 5);
     } else {
@@ -166,13 +169,13 @@ function drawIntervalText(intervalBase, x, y) {
 
 
 function renderSubAxis(coordinate, subIntervalCount, isX, isPositive) {
-    const tempInterval = interval.base * interval.tenthExponent;
+    const gridInterval = interval.base * interval.tenthExponent;
     var i = 1;
     while (i < subIntervalCount) {
-        if(coordinate == null) { //if coordinate isn't in bound, end loop
+        if (coordinate == null) { //if coordinate isn't in bound, end loop
             return;
         }
-        var subCoordinatePos = ((tempInterval * interval.pxPerUnit) / subIntervalCount) * i;
+        var subCoordinatePos = ((gridInterval * interval.pxPerUnit) / subIntervalCount) * i;
         var subCoordinate = isPositive == true ? coordinate + subCoordinatePos : coordinate - subCoordinatePos;
         x1 = isX == true ? subCoordinate : 0;
         x2 = isX == true ? subCoordinate : windowDimensions.width;
@@ -199,10 +202,8 @@ function calculateCoordinatesFromPx(xPx, yPx) {
 function calculatePxFromCoordinates(x, y) {
     var mdptX = windowDimensions.width / 2;
     var mdptY = windowDimensions.height / 2;
-
     var xPx = ((x - coordinates.x) * interval.pxPerUnit) + mdptX; //moves xPx's 0 value back to top left, pixels can't be negative, must be cast to positive number
     var yPx = (((y - coordinates.y) * interval.pxPerUnit) - mdptY) * -1; //moves yPx's 0 value back to top left
-
     if (Math.sign(xPx) == -1 || Math.sign(yPx) == -1 || xPx > windowDimensions.width || yPx > windowDimensions.height) {
         return [null, null];
     } else {
@@ -211,7 +212,7 @@ function calculatePxFromCoordinates(x, y) {
 }
 
 function calculateDragNewMdpt(y2, y1, x2, x1) {
-    var y = y2 - y1;    
+    var y = y2 - y1;
     var x = x2 - x1;
     coordinates.y = coordinates.y + y;
     coordinates.x = coordinates.x + x;
@@ -221,7 +222,7 @@ window.addEventListener('wheel', (e) => {
     let posX = e.pageX; //browser's x pixels
     let posY = e.pageY; //browser's y pixels
     let oldHoverCoordinates = calculateCoordinatesFromPx(posX, posY);
-    if (e.deltaY == 100 && coordinates.z.base != 110) { //deltaY = 100 if mouseWheelUp
+    if (e.deltaY == 100 && coordinates.z.base != 110) { //deltaY = 100 if mouseWheelUp; 110 is the maxw
         coordinates.z.fraction++;
         initZoomEvent(oldHoverCoordinates, posX, posY);
     } else if (e.deltaY == -100 && coordinates.z.base != 0) { //deltaY = -100 if mouseWheelDown
@@ -302,11 +303,11 @@ function drawLine(x1, x2, y1, y2, lineWidth, lineColor) {
     ctx.beginPath();
     x1 = Math.round(x1) + 0.5;
     x2 = Math.round(x2) + 0.5;
-    if(y1 == y2) {
+    if (y1 == y2) {
         y1 = Math.round(y1) + 0.5;
         y2 = Math.round(y2) + 0.5;
     }
-    ctx.moveTo(x1, y1); 
+    ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.lineWidth = lineWidth;
     ctx.strokeStyle = lineColor;
