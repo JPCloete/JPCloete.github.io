@@ -20,8 +20,10 @@ var interval = {
         rateOfChange: 0.7,
         xValue: 0, //derived from initialValue + zFraction * rateOfChange
         yValue: 0, // y's value is derived from x's value, therefore initial y.value is 0
-        xTextOnY0Axis: true, //flag for rendering x interval's on y = 0 if true or on horizontal sides of window if false
-        yTextOnX0Axis: true //flag for rendering y interval's on x = 0 if true or on vertical sides of window if false
+    },
+    text: {
+        x0pxCoordinate: 0, //this value is 0 when x's 0 value is not in view range
+        y0pxCoordinate: 0, //this value is 0 when y's 0 value is not in view range
     },
     pxPerUnit: 0
 }
@@ -96,21 +98,24 @@ function renderGrid() {
     var coordinateRefArr = [];
     var xCoordinateRef = calculatePxFromCoordinates(xOffset, coordinates.y);
     var yCoordinateRef = calculatePxFromCoordinates(coordinates.x, yOffset);
-    const coordinatePxDifference = xCoordinateRef[0] - calculatePxFromCoordinates(xOffset - gridInterval, coordinates.y)[0]; //calculates distance in px between each interval
+    const coordinatePxDifference = xCoordinateRef[0] - calculatePxFromCoordinates(xOffset - gridInterval, coordinates.y)[0]; //calculates distance in px between each axis
     coordinateRefArr.push(xCoordinateRef[0]);
     coordinateRefArr.push(xCoordinateRef[0]);
     coordinateRefArr.push(yCoordinateRef[1]);
     coordinateRefArr.push(yCoordinateRef[1]);
     var dupCoordinateRefArr = coordinateRefArr.slice(); //creates duplicate coordinateRefArr instance
-    interval.xTextOnY0Axis = false;
-    interval.yTextOnX0Axis = false;
+    //handles text rendering details
+    var x0pxCoordinate = calculatePxFromCoordinates(0, coordinates.y);
+    var y0pxCoordinate = calculatePxFromCoordinates(coordinates.x, 0);
+    interval.text.x0pxCoordinate = x0pxCoordinate[0] != null ? x0pxCoordinate[0] : 0;
+    interval.text.y0pxCoordinate = y0pxCoordinate[1] != null ? y0pxCoordinate[1] : 0;
     while (i <= (unitIntervalCount / 2) + 1) { //2 while loops used to keep z-index of intersecting lines consistent
         renderSubAxis(coordinateRefArr[0], subIntervalCount, true, true); //renders positive(relative to mdpt) x subValues
         renderSubAxis(coordinateRefArr[1], subIntervalCount, true, false); //renders negative(relative to mdpt) x subValues
         renderSubAxis(coordinateRefArr[2], subIntervalCount, false, false); //renders positive(relative to mdpt) y subValues
         renderSubAxis(coordinateRefArr[3], subIntervalCount, false, true); //renders negative(relative to mdpt) y subValues
-        coordinateRefArr[0] = coordinateRefArr[0] + coordinatePxDifference;
-        coordinateRefArr[1] = coordinateRefArr[1] - coordinatePxDifference;
+        coordinateRefArr[0] = coordinateRefArr[0] - coordinatePxDifference;
+        coordinateRefArr[1] = coordinateRefArr[1] + coordinatePxDifference;
         coordinateRefArr[2] = coordinateRefArr[2] + coordinatePxDifference;
         coordinateRefArr[3] = coordinateRefArr[3] - coordinatePxDifference;
         i++;
@@ -134,26 +139,35 @@ function renderAxis(x1, x2, y1, y2, coordinate, isX) {
     }
     if (coordinate == 0) {
         drawLine(x1, x2, y1, y2, 1, "black");
-        if (isX) {
-            interval.xTextOnY0Axis = true;
-        } else {
-            interval.yTextOnX0Axis = true;
-        }
     } else {
         drawLine(x1, x2, y1, y2, 1, "#989898");
     }
-    if (isX && interval.xTextOnY0Axis == true) {
-
+    if (coordinate == 0) {
+        return;
     }
+    if (isX) {
+        if(interval.text.y0pxCoordinate == 0) {
+            drawIntervalText(coordinate, x1, 0 + 20);
+            drawIntervalText(coordinate, x1, windowDimensions.height);
+            return;
+        }
+        drawIntervalText(coordinate, x1, interval.text.y0pxCoordinate + 15);
+        return;
+    }
+    if(interval.text.x0pxCoordinate == 0) {
+        drawIntervalText(coordinate, 0, y1);
+        drawIntervalText(coordinate, windowDimensions.width - 20, y1);
+    }
+    drawIntervalText(coordinate, interval.text.x0pxCoordinate, y1)
 }
 
 function drawIntervalText(intervalBase, x, y) {
     const ctx = canvas.getCtx();
-    ctx.scale(2, 2);
-    ctx.font = 9 + "px Verdana";
+    ctx.scale(1, 1);
+    ctx.font = 15 + "px Verdana";
     if (interval.tenthExponent >= 1000000) {
         ctx.fillText(intervalBase + " x10", x, y);
-        ctx.fillText(Math.log10(interval.tenthExponent), x + 25, y - 5);
+        ctx.fillText(Math.log10(interval.tenthExponent), x + 100, y - 5);
     } else {
         ctx.fillText(intervalBase * interval.tenthExponent, x, y);
     }
@@ -283,7 +297,9 @@ function calculateIntervalExponent(remainder) {
 
 function setCanvasDimensions() {
     canvas.htmlElement.width = windowDimensions.width;
-    canvas.htmlElement.height = windowDimensions.height
+    canvas.htmlElement.height = windowDimensions.height;
+    interval.text.x0pxCoordinate = windowDimensions.width / 2;
+    interval.text.y0pxCoordinate = windowDimensions.height / 2;
 }
 
 window.addEventListener('resize', () => {
