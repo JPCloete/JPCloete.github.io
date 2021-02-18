@@ -156,7 +156,8 @@ function renderAxis(x1, x2, y1, y2, coordinate, isX) {
     }
     if(interval.text.x0pxCoordinate == 0) {
         drawIntervalText(coordinate, 0, y1);
-        drawIntervalText(coordinate, windowDimensions.width - 20, y1);
+        let rightBoundTextOffset = coordinate.toString().length * 15; //used for right side of screen to prevent text going of screen if interval size is to large
+        drawIntervalText(coordinate, windowDimensions.width - rightBoundTextOffset, y1);
     }
     drawIntervalText(coordinate, interval.text.x0pxCoordinate, y1)
 }
@@ -164,12 +165,13 @@ function renderAxis(x1, x2, y1, y2, coordinate, isX) {
 function drawIntervalText(intervalBase, x, y) {
     const ctx = canvas.getCtx();
     ctx.scale(1, 1);
-    ctx.font = 15 + "px Verdana";
-    if (interval.tenthExponent >= 1000000) {
-        ctx.fillText(intervalBase + " x10", x, y);
-        ctx.fillText(Math.log10(interval.tenthExponent), x + 100, y - 5);
+    ctx.font = 13 + "px Verdana";
+    if (interval.tenthExponent >= 100000) {
+        ctx.fillStyle = "#989898"
+        ctx.fillText((intervalBase / interval.tenthExponent)+ " x10", x + 3, y - 3);
+        ctx.fillText(Math.log10(interval.tenthExponent), x + 45, y - 5);
     } else {
-        ctx.fillText(intervalBase * interval.tenthExponent, x, y);
+        ctx.fillText(intervalBase * interval.tenthExponent, x + 3, y - 3);
     }
     ctx.scale(1, 1)
 }
