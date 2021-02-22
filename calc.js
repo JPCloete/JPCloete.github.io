@@ -2,30 +2,14 @@ var coordinates = {
     x: 0,
     y: 0,
     z: {
-        initialBase: 45, 
-        base: 45, //base is a relative unit to determine interval size. Factors of 3 to allow 3 bases(1, 2, 5), value of 45 allows zooming in to a factor of 10e-15 and zooming out to a factor of 10e21
+        initialBase: 42, 
+        base: 42, //base is a relative unit to determine interval size. Factors of 3 to allow 3 bases(1, 2, 5), value of 45 allows zooming in to a factor of 10e-14 and zooming out to a factor of 10e21
         fraction: 5
     },
     hoverPoint: {
         x: 0,
         y: 0
     }
-}
-
-var interval = {
-    base: 1,
-    tenthExponent: 1,
-    count: {
-        initialValue: 10,
-        rateOfChange: 0.7,
-        xValue: 0, //derived from initialValue + zFraction * rateOfChange
-        yValue: 0, // y's value is derived from x's value, therefore initial y.value is 0
-    },
-    text: {
-        x0pxCoordinate: 0, //this value is 0 when x's 0 value is not in view range
-        y0pxCoordinate: 0, //this value is 0 when y's 0 value is not in view range
-    },
-    pxPerUnit: 0
 }
 
 var windowDimensions = {
@@ -88,6 +72,7 @@ function dragEvent(e) { //custom event(hold mouse button 1 and drag)
 
 function renderGrid() {
     gridSetUp();
+    console.log(interval.tenthExponent);
     const gridInterval = interval.base * interval.tenthExponent;
     const xOffset = roundToInterval(coordinates.x, gridInterval);
     const yOffset = roundToInterval(coordinates.y, gridInterval);
@@ -109,15 +94,15 @@ function renderGrid() {
     var y0pxCoordinate = calculatePxFromCoordinates(coordinates.x, 0);
     interval.text.x0pxCoordinate = x0pxCoordinate[0] != null ? x0pxCoordinate[0] : 0;
     interval.text.y0pxCoordinate = y0pxCoordinate[1] != null ? y0pxCoordinate[1] : 0;
-    while (i <= (unitIntervalCount / 2) + 1) { //2 while loops used to keep z-index of intersecting lines consistent
+    while (i <= (unitIntervalCount / 2) + 2) { //2 while loops used to keep z-index of intersecting lines consistent
         renderSubAxis(coordinateRefArr[0], subIntervalCount, true, true); //renders positive(relative to mdpt) x subValues
         renderSubAxis(coordinateRefArr[1], subIntervalCount, true, false); //renders negative(relative to mdpt) x subValues
         renderSubAxis(coordinateRefArr[2], subIntervalCount, false, false); //renders positive(relative to mdpt) y subValues
         renderSubAxis(coordinateRefArr[3], subIntervalCount, false, true); //renders negative(relative to mdpt) y subValues
         coordinateRefArr[0] = coordinateRefArr[0] - coordinatePxDifference;
         coordinateRefArr[1] = coordinateRefArr[1] + coordinatePxDifference;
-        coordinateRefArr[2] = coordinateRefArr[2] + coordinatePxDifference;
-        coordinateRefArr[3] = coordinateRefArr[3] - coordinatePxDifference;
+        coordinateRefArr[2] = coordinateRefArr[2] - coordinatePxDifference;
+        coordinateRefArr[3] = coordinateRefArr[3] + coordinatePxDifference;
         i++;
     }
     while (j <= (unitIntervalCount / 2) + 1) {
@@ -139,13 +124,11 @@ function renderAxis(x1, x2, y1, y2, coordinate, isX) {
     }
     if (coordinate == 0) {
         drawLine(x1, x2, y1, y2, 1, "black");
+        return;
     } else {
         drawLine(x1, x2, y1, y2, 1, "#989898");
     }
-    if (coordinate == 0) {
-        return;
-    }
-    if (isX) {
+    if (isX) {  
         if(interval.text.y0pxCoordinate == 0) {
             drawIntervalText(coordinate, x1, 0 + 20);
             drawIntervalText(coordinate, x1, windowDimensions.height);
@@ -158,22 +141,48 @@ function renderAxis(x1, x2, y1, y2, coordinate, isX) {
         drawIntervalText(coordinate, 0, y1);
         let rightBoundTextOffset = coordinate.toString().length * 15; //used for right side of screen to prevent text going of screen if interval size is to large
         drawIntervalText(coordinate, windowDimensions.width - rightBoundTextOffset, y1);
+        return;
     }
     drawIntervalText(coordinate, interval.text.x0pxCoordinate, y1)
 }
 
+var interval = {
+    base: 1,
+    tenthExponent: 1,
+    exponent: 0,
+    count: {
+        initialValue: 10,
+        rateOfChange: 0.7,
+        xValue: 0, //derived from initialValue + zFraction * rateOfChange
+        yValue: 0, // y's value is derived from x's value, therefore initial y.value is 0
+    },
+    text: {
+        x0pxCoordinate: 0, //this value is 0 when x's 0 value is not in view range
+        y0pxCoordinate: 0, //this value is 0 when y's 0 value is not in view range
+        exponents: ["⁻¹⁷", "⁻¹⁶", "⁻¹⁵", "⁻¹⁴", "⁻¹³", "⁻¹²", "⁻¹¹", "⁻¹⁰", "⁻⁹", "⁻⁸", "⁻⁷", "⁻⁶", "⁻⁵", "⁻⁴", "⁻³", "⁻²", "⁻¹", //17 added when pulling data from exponents array to normalize initial value to 0
+         "⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹", "¹⁰", "¹¹", "¹²", "¹³", "¹⁴", "¹⁵", "¹⁶", "¹⁷", "¹⁸", "¹⁹", "²⁰", "²¹", "²²", "²³", "²⁴"] 
+    },
+    pxPerUnit: 0
+}
+
 function drawIntervalText(intervalBase, x, y) {
-    const ctx = canvas.getCtx();
+    var gridInterval = intervalBase;
+    var normalizationValue = 17
+    const ctx = canvas.getCtx(); //initialize canvas
     ctx.scale(1, 1);
     ctx.font = 13 + "px Verdana";
-    if (interval.tenthExponent >= 100000) {
-        ctx.fillStyle = "#989898"
-        ctx.fillText((intervalBase / interval.tenthExponent)+ " x10", x + 3, y - 3);
-        ctx.fillText(Math.log10(interval.tenthExponent), x + 45, y - 5);
-    } else {
-        ctx.fillText(intervalBase * interval.tenthExponent, x + 3, y - 3);
+    if(interval.exponent < 0) {
+        gridInterval = gridInterval.round(Math.abs(interval.exponent) + 1);
     }
-    ctx.scale(1, 1)
+    if(interval.exponent >= 5 || interval.exponent <= -5) {
+        intervalBase = intervalBase / interval.tenthExponent;
+        let absIntervalBase = Math.abs(intervalBase).toString().length;
+        if(absIntervalBase > 1) {
+            normalizationValue = Math.sign(intervalBase) == -1 ? normalizationValue - (absIntervalBase - 2) : normalizationValue + (absIntervalBase - 1);
+        }
+        gridInterval = intervalBase + " x10" + interval.text.exponents[interval.exponent + normalizationValue]; //17 added to normalize to 0
+    }
+    ctx.fillText(gridInterval, x + 3, y - 3);
 }
 
 
@@ -294,7 +303,9 @@ function calculateIntervalBase() {
 
 function calculateIntervalExponent(remainder) {
     var defaultZDifference = coordinates.z.base - coordinates.z.initialBase - remainder; //remainder is minused to "round" to the 1st factor of 3 below the current base.
-    interval.tenthExponent = 10 ** (defaultZDifference / 3);
+    var exponent = defaultZDifference / 3;
+    interval.exponent = exponent;
+    interval.tenthExponent = 10 ** exponent;
 }
 
 function setCanvasDimensions() {
@@ -339,3 +350,7 @@ function roundToInterval(num, interval) {
     }
     return num;
 }
+
+Number.prototype.round = function(places) {
+    return +(Math.round(this + "e+" + places)  + "e-" + places);
+  }
