@@ -3,7 +3,7 @@ var coordinates = {
     y: 0,
     z: {
         initialBase: 15, 
-        base: 15, //base is a relative unit to determine interval size. Factors of 3 to allow 3 bases(1, 2, 5), value of 45 allows zooming in to a factor of 10e-5 and zooming out to a factor of 10e10
+        base: 15, //base is a relative unit to determine interval size. Factors of 3 to allow 3 bases(1, 2, 5), value of 15 allows zooming in to a factor of 10e-5 and zooming out to a factor of 10e10
         fraction: 5
     },
     hoverPoint: {
@@ -26,7 +26,8 @@ var interval = {
         x0pxCoordinate: 0, //this value is 0 when x's 0 value is not in view range
         y0pxCoordinate: 0, //this value is 0 when y's 0 value is not in view range
         fontSize: 0,
-        offSet: 0
+        offSet: 0,
+        exponents: ["⁵", "⁶", "⁷", "⁸", "⁹", "¹⁰", "¹¹", "¹²", "¹³"]
     },
     pxPerUnit: 0
 }
@@ -69,8 +70,8 @@ function gridSetUp(isInit) {
 }
 
 function calculateFontsize() {
-    interval.text.fontSize = Math.ceil(windowDimensions.width / 200) + 5;
-    interval.text.offSet = 30 / interval.text.fontSize;
+    interval.text.fontSize = Math.ceil(windowDimensions.width / 250) + 8;
+    interval.text.offSet = 10 / interval.text.fontSize;
 }   
 
 
@@ -153,7 +154,7 @@ function renderGrid() {
     const unitIntervalCount = windowDimensions.width >= windowDimensions.height ? interval.count.xValue : interval.count.yValue; //interval.count.yValue used for when deltaY > deltaX(browser height > width)
     const subIntervalCount = gridInterval % (2 * interval.tenthExponent) == 0 ? 4 : 5; //calculates how many subIntervals should be between each interval (4 if base is 2; 5 if base is 1 || 5);
     var i = 0;
-    var j = 0;
+    var j = 1;
     var coordinateRefArr = [];
     var xCoordinateRef = calculatePxFromCoordinates(xOffset, coordinates.y);
     var yCoordinateRef = calculatePxFromCoordinates(coordinates.x, yOffset);
@@ -179,20 +180,25 @@ function renderGrid() {
         coordinateRefArr[3] = coordinateRefArr[3] + coordinatePxDifference;
         i++;
     }
+    renderAxis(dupCoordinateRefArr[0], dupCoordinateRefArr[0], 0, windowDimensions.height, xOffset, true); //renderered before while loop to avoid double render for first axis
+    renderAxis(0, windowDimensions.width, dupCoordinateRefArr[2], dupCoordinateRefArr[2], yOffset, false);
     while (j <= (unitIntervalCount / 2) + 1) {
-        renderAxis(dupCoordinateRefArr[0], dupCoordinateRefArr[0], 0, windowDimensions.height, (xOffset - (gridInterval * j)).round(Math.abs(interval.exponent)), true); //renders positive(relative to mdpt) x values
-        renderAxis(dupCoordinateRefArr[1], dupCoordinateRefArr[1], 0, windowDimensions.height, (xOffset + (gridInterval * j)).round(Math.abs(interval.exponent)), true); //renders negative(relative to mdpt) x values
-        renderAxis(0, windowDimensions.width, dupCoordinateRefArr[2], dupCoordinateRefArr[2], (yOffset + (gridInterval * j)).round(Math.abs(interval.exponent)), false); //renders positive(relative to mdtp) y values 
-        renderAxis(0, windowDimensions.width, dupCoordinateRefArr[3], dupCoordinateRefArr[3], (yOffset - (gridInterval * j)).round(Math.abs(interval.exponent)), false); //renders negative(relatvie to mdpt) y values
         dupCoordinateRefArr[0] = dupCoordinateRefArr[0] - coordinatePxDifference;
         dupCoordinateRefArr[1] = dupCoordinateRefArr[1] + coordinatePxDifference;
         dupCoordinateRefArr[2] = dupCoordinateRefArr[2] - coordinatePxDifference;
         dupCoordinateRefArr[3] = dupCoordinateRefArr[3] + coordinatePxDifference;
+        renderAxis(dupCoordinateRefArr[0], dupCoordinateRefArr[0], 0, windowDimensions.height, (xOffset - (gridInterval * j)), true); //renders positive(relative to mdpt) x values
+        renderAxis(dupCoordinateRefArr[1], dupCoordinateRefArr[1], 0, windowDimensions.height, (xOffset + (gridInterval * j)), true); //renders negative(relative to mdpt) x values
+        renderAxis(0, windowDimensions.width, dupCoordinateRefArr[2], dupCoordinateRefArr[2], (yOffset + (gridInterval * j)), false); //renders positive(relative to mdtp) y values 
+        renderAxis(0, windowDimensions.width, dupCoordinateRefArr[3], dupCoordinateRefArr[3], (yOffset - (gridInterval * j)), false); //renders negative(relatvie to mdpt) y values
         j++
     }
 }
 
 function renderAxis(x1, x2, y1, y2, coordinate, isX) {
+    if(interval.exponent <= 1) {
+        coordinate = coordinate.round(Math.abs(interval.exponent));
+    }
     if (x1 == null || x2 == null || y1 == null || y2 == null) {
         return; //do nothing
     }
@@ -226,6 +232,7 @@ function drawIntervalText(intervalBase, x, y, isMaxWidth) {
     ctx.font = interval.text.fontSize + "px Verdana";
     if(Math.abs(intervalBase) >= 100000) {
         intervalBase = intervalBase.toExponential();
+        intervalBase = intervalBase.replace(intervalBase.slice(-3), "x10" + interval.text.exponents[Math.floor(intervalBase.slice(-2)) - 5]) //converts from exponent string format to scientific notation eg. 12e+3 => 12x10³
         intervalBaseLen = Math.sign(gridInterval) == -1 ? intervalBase.length - 1 : intervalBase.length
         if(intervalBaseLen >= 10) {
             return;
@@ -298,12 +305,10 @@ window.addEventListener('wheel', (e) => {
     let posX = e.pageX; //browser's x pixels
     let posY = e.pageY; //browser's y pixels
     let oldHoverCoordinates = calculateCoordinatesFromPx(posX, posY);
-    var x = 10000000000000000000000
-    console.log(x.toExponential())
-    if (e.deltaY == 100 && interval.exponent != 21) { //deltaY = 100 if mouseWheelUp; 110 is the max
+    if (e.deltaY == 100 && interval.exponent < 11) { //deltaY = 100 if mouseWheelUp; max exponent of 10
         coordinates.z.fraction++;
         initZoomEvent(oldHoverCoordinates, posX, posY);
-    } else if (e.deltaY == -100 && interval.exponent != -5) { //deltaY = -100 if mouseWheelDown
+    } else if (e.deltaY == -100 && interval.exponent > -6) { //deltaY = -100 if mouseWheelDown; min exponent of -5
         coordinates.z.fraction--;
         initZoomEvent(oldHoverCoordinates, posX, posY)
     }
@@ -366,14 +371,11 @@ function calculateIntervalExponent(remainder) {
     var exponent = defaultZDifference / 3;
     interval.exponent = exponent;
     interval.tenthExponent = 10 ** exponent;
-    interval.tenthExponent = interval.tenthExponent.round(Math.abs(exponent));
 }
 
 function setCanvasDimensions() {
     canvas.htmlElement.width = windowDimensions.width;
     canvas.htmlElement.height = windowDimensions.height;
-    interval.text.x0pxCoordinate = windowDimensions.width / 2;
-    interval.text.y0pxCoordinate = windowDimensions.height / 2;
 }
 
 function drawLine(x1, x2, y1, y2, lineWidth, lineColor) {
