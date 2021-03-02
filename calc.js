@@ -12,7 +12,27 @@ var coordinates = {
     }
 }
 
+var interval = {
+    base: 1,
+    tenthExponent: 1,
+    exponent: 0,
+    count: {
+        initialValue: 10,
+        rateOfChange: 0.7,
+        xValue: 0, //derived from initialValue + zFraction * rateOfChange
+        yValue: 0, // y's value is derived from x's value, therefore initial y.value is 0
+    },
+    text: {
+        x0pxCoordinate: 0, //this value is 0 when x's 0 value is not in view range
+        y0pxCoordinate: 0, //this value is 0 when y's 0 value is not in view range
+        fontSize: 0
+    },
+    pxPerUnit: 0
+}
+
+
 var windowDimensions = {
+    isMobile: false,
     width: window.innerWidth,
     height: window.innerHeight
 }
@@ -26,14 +46,13 @@ var canvas = {
 }
 
 window.onload = () => { //calculates initial values and draws grid
+    if (typeof window.orientation !== 'undefined') { //checks if device is mobile
+        windowDimensions.isMobile = true;
+    }
     setCanvasDimensions();
     gridSetUp();
     setIntervalCount();
     renderGrid();
-}
-
-window.onmousedown = () => { //fires dragEvent
-    dragEvent();
 }
 
 function gridSetUp() {
@@ -46,13 +65,19 @@ function gridSetUp() {
     interval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
 }
 
+
+window.onmousedown = () => { //fires dragEvent
+    if(windowDimensions.isMobile) {
+        return;
+    }
+    dragEvent();
+}
+
 function dragEvent(e) { //custom event(hold mouse button 1 and drag)
     window.onmouseup = () => { //clears event after mouse button has been released
-        window.onmouseup = null;
         window.onmousemove = null;
     }
     e = e || window.event;
-    e.preventDefault();
     posX = e.clientX; //browser's x pixels
     posY = e.clientY; //browser's y pixels
     window.onmousemove = (e) => { //drag party of drag event ;)
@@ -66,6 +91,35 @@ function dragEvent(e) { //custom event(hold mouse button 1 and drag)
             }
             renderGrid();
             dragEvent(e);
+        }
+    }
+}
+
+window.touchstart = () => {
+    if(windowDimensions.isMobile == false) {
+        return;
+    }
+    mobDragEvent();
+}
+
+function mobDragEvent(e) {
+    window.touchend = () => {
+        window.touchmove = null;
+    }
+    e = e || window.event;
+    posX = e.clientX;
+    posY = e.clientY;
+    window.touchmove = (e) => {
+        posXDifference = e.clientX - posX;
+        posYDifference = e.clientY - posY;
+        if (Math.abs(posXDifference) + Math.abs(posYDifference) > 1) { //makes rerendering less frequent to improve performance
+            var currentCoordinates = calculateCoordinatesFromPx(e.clientX, e.clientY); //get current coordinates
+            var prevCoordinates = calculateCoordinatesFromPx(posX, posY); //get previousCoordinates
+            if (currentCoordinates != null && prevCoordinates != null) {
+                calculateDragNewMdpt(prevCoordinates[1], currentCoordinates[1], prevCoordinates[0], currentCoordinates[0]);
+            }
+            renderGrid();
+            mobDragEvent(e);
         }
     }
 }
@@ -142,23 +196,6 @@ function renderAxis(x1, x2, y1, y2, coordinate, isX) {
         return;
     }
     drawIntervalText(coordinate, interval.text.x0pxCoordinate, y1, false);
-}
-
-var interval = {
-    base: 1,
-    tenthExponent: 1,
-    exponent: 0,
-    count: {
-        initialValue: 10,
-        rateOfChange: 0.7,
-        xValue: 0, //derived from initialValue + zFraction * rateOfChange
-        yValue: 0, // y's value is derived from x's value, therefore initial y.value is 0
-    },
-    text: {
-        x0pxCoordinate: 0, //this value is 0 when x's 0 value is not in view range
-        y0pxCoordinate: 0, //this value is 0 when y's 0 value is not in view range
-    },
-    pxPerUnit: 0
 }
 
 function drawIntervalText(intervalBase, x, y, isMaxWidth) {
