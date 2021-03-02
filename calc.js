@@ -3,7 +3,7 @@ var coordinates = {
     y: 0,
     z: {
         initialBase: 15, 
-        base: 15, //base is a relative unit to determine interval size. Factors of 3 to allow 3 bases(1, 2, 5), value of 45 allows zooming in to a factor of 10e-5 and zooming out to a factor of 10e21
+        base: 15, //base is a relative unit to determine interval size. Factors of 3 to allow 3 bases(1, 2, 5), value of 45 allows zooming in to a factor of 10e-5 and zooming out to a factor of 10e10
         fraction: 5
     },
     hoverPoint: {
@@ -18,7 +18,7 @@ var interval = {
     exponent: 0,
     count: {
         initialValue: 10,
-        rateOfChange: 0.5,
+        rateOfChange: 0.6,
         xValue: 0, //derived from initialValue + zFraction * rateOfChange
         yValue: 0, // y's value is derived from x's value, therefore initial y.value is 0
     },
@@ -34,8 +34,9 @@ var interval = {
 
 var windowDimensions = {
     isMobile: false,
-    width: window.innerWidth,
-    height: window.innerHeight
+    width: 0,
+    height: 0,
+    whCombo: 0
 }
 
 var canvas = {
@@ -56,10 +57,11 @@ window.onload = () => { //calculates initial values and draws grid
     renderGrid();
 }
 
-function gridSetUp() {
+function gridSetUp(isInit) {
     clearCanvas();
     windowDimensions.width = window.innerWidth;
     windowDimensions.height = window.innerHeight;
+    windowDimensions.whCombo = windowDimensions.width + windowDimensions.height;
     setCanvasDimensions();
     setIntervalCount();
     var deltaXUnits = interval.count.xValue * interval.base * interval.tenthExponent; //Net X Units
@@ -69,7 +71,6 @@ function gridSetUp() {
 function calculateFontsize() {
     interval.text.fontSize = Math.ceil(windowDimensions.width / 200) + 5;
     interval.text.offSet = 30 / interval.text.fontSize;
-    console.log(interval.text.offSet);
 }   
 
 
@@ -131,9 +132,18 @@ function mobDragEvent(e) {
     }
 }
 
-window.orientationchange = () => {
+window.addEventListener('orientationchange', () => {
+    gridSetUp();
     calculateFontsize();
-}
+    renderGrid();
+});
+
+
+window.addEventListener('resize', () => {
+    gridSetUp();
+    calculateFontsize();
+    renderGrid();
+});
 
 function renderGrid() {
     gridSetUp();
@@ -288,6 +298,8 @@ window.addEventListener('wheel', (e) => {
     let posX = e.pageX; //browser's x pixels
     let posY = e.pageY; //browser's y pixels
     let oldHoverCoordinates = calculateCoordinatesFromPx(posX, posY);
+    var x = 10000000000000000000000
+    console.log(x.toExponential())
     if (e.deltaY == 100 && interval.exponent != 21) { //deltaY = 100 if mouseWheelUp; 110 is the max
         coordinates.z.fraction++;
         initZoomEvent(oldHoverCoordinates, posX, posY);
@@ -300,7 +312,6 @@ window.addEventListener('wheel', (e) => {
 
 function initZoomEvent(oldHoverCoordinates, posX, posY) {
     handleZFractionLoop();
-    setIntervalCount();
     gridSetUp(); //need to run this before getting the new hoverCoordinates
     let newHoverCoordinates = calculateCoordinatesFromPx(posX, posY);
     calculateMdptFromHoverpointZoom(oldHoverCoordinates, newHoverCoordinates)
@@ -326,7 +337,8 @@ function handleZFractionLoop() {
 }
 
 function setIntervalCount() {
-    interval.count.xValue = interval.count.initialValue + coordinates.z.fraction;
+    let intervalBasisCount = windowDimensions.whCombo / 300;
+    interval.count.xValue = intervalBasisCount + (intervalBasisCount * (coordinates.z.fraction / 10));
     interval.count.yValue = (windowDimensions.height / windowDimensions.width) * interval.count.xValue;
 }
 
@@ -363,11 +375,6 @@ function setCanvasDimensions() {
     interval.text.x0pxCoordinate = windowDimensions.width / 2;
     interval.text.y0pxCoordinate = windowDimensions.height / 2;
 }
-
-window.addEventListener('resize', () => {
-    gridSetUp();
-    renderGrid();
-});
 
 function drawLine(x1, x2, y1, y2, lineWidth, lineColor) {
     const ctx = canvas.getCtx();
