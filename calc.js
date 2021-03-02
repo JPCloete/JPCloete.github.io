@@ -18,14 +18,15 @@ var interval = {
     exponent: 0,
     count: {
         initialValue: 10,
-        rateOfChange: 0.7,
+        rateOfChange: 0.5,
         xValue: 0, //derived from initialValue + zFraction * rateOfChange
         yValue: 0, // y's value is derived from x's value, therefore initial y.value is 0
     },
     text: {
         x0pxCoordinate: 0, //this value is 0 when x's 0 value is not in view range
         y0pxCoordinate: 0, //this value is 0 when y's 0 value is not in view range
-        fontSize: 0
+        fontSize: 0,
+        offSet: 0
     },
     pxPerUnit: 0
 }
@@ -49,8 +50,8 @@ window.onload = () => { //calculates initial values and draws grid
     if (typeof window.orientation !== 'undefined') { //checks if device is mobile
         windowDimensions.isMobile = true;
     }
-    setCanvasDimensions();
     gridSetUp();
+    calculateFontsize();
     setIntervalCount();
     renderGrid();
 }
@@ -64,6 +65,12 @@ function gridSetUp() {
     var deltaXUnits = interval.count.xValue * interval.base * interval.tenthExponent; //Net X Units
     interval.pxPerUnit = windowDimensions.width / deltaXUnits; //pxPerUnit value used for coordinate - and pixel location calculations
 }
+
+function calculateFontsize() {
+    interval.text.fontSize = Math.ceil(windowDimensions.width / 200) + 5;
+    interval.text.offSet = 30 / interval.text.fontSize;
+    console.log(interval.text.offSet);
+}   
 
 
 window.onmousedown = () => { //fires dragEvent
@@ -122,6 +129,10 @@ function mobDragEvent(e) {
             mobDragEvent(e);
         }
     }
+}
+
+window.orientationchange = () => {
+    calculateFontsize();
 }
 
 function renderGrid() {
@@ -183,7 +194,7 @@ function renderAxis(x1, x2, y1, y2, coordinate, isX) {
     }
     if (isX) {  
         if(interval.text.y0pxCoordinate == 0) {
-            drawIntervalText(coordinate, x1, 0 + 20, false);
+            drawIntervalText(coordinate, x1, interval.text.fontSize, false);
             drawIntervalText(coordinate, x1, windowDimensions.height, false);
             return;
         }
@@ -202,8 +213,8 @@ function drawIntervalText(intervalBase, x, y, isMaxWidth) {
     var gridInterval = intervalBase;
     const ctx = canvas.getCtx(); //initialize canvas
     ctx.scale(1, 1);
-    ctx.font = 13 + "px Verdana";
-    if(Math.abs(intervalBase) >= 1000000) {
+    ctx.font = interval.text.fontSize + "px Verdana";
+    if(Math.abs(intervalBase) >= 100000) {
         intervalBase = intervalBase.toExponential();
         intervalBaseLen = Math.sign(gridInterval) == -1 ? intervalBase.length - 1 : intervalBase.length
         if(intervalBaseLen >= 10) {
@@ -212,11 +223,14 @@ function drawIntervalText(intervalBase, x, y, isMaxWidth) {
     }
     if(isMaxWidth) {
         ctx.textAlign = "right";
+        x = x - interval.text.offSet
+        y = y - interval.text.offSet
     } else {
         ctx.textAlign = "start";
-        x = x + 3;
-        y = y - 3;
+        x = x + interval.text.offSet
+        y = y - interval.text.offSet
     } 
+    ctx.fillStyle = "black"
     ctx.fillText(intervalBase, x, y);
 }
 
