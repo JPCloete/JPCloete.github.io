@@ -18,7 +18,6 @@ var interval = {
     exponent: 0,
     count: {
         initialValue: 10,
-        rateOfChange: 0.6,
         xValue: 0, //derived from initialValue + zFraction * rateOfChange
         yValue: 0, // y's value is derived from x's value, therefore initial y.value is 0
     },
@@ -58,7 +57,7 @@ window.onload = () => { //calculates initial values and draws grid
     renderGrid();
 }
 
-function gridSetUp(isInit) {
+function gridSetUp() {
     clearCanvas();
     windowDimensions.width = window.innerWidth;
     windowDimensions.height = window.innerHeight;
@@ -147,6 +146,7 @@ window.addEventListener('resize', () => {
 });
 
 function renderGrid() {
+    console.log(coordinates.x)
     gridSetUp();
     const gridInterval = interval.base * interval.tenthExponent;
     const xOffset = roundToInterval(coordinates.x, gridInterval);
@@ -232,7 +232,10 @@ function drawIntervalText(intervalBase, x, y, isMaxWidth) {
     ctx.font = interval.text.fontSize + "px Verdana";
     if(Math.abs(intervalBase) >= 100000) {
         intervalBase = intervalBase.toExponential();
-        intervalBase = intervalBase.replace(intervalBase.slice(-3), "x10" + interval.text.exponents[Math.floor(intervalBase.slice(-2)) - 5]) //converts from exponent string format to scientific notation eg. 12e+3 => 12x10³
+        let exponent = Math.floor(intervalBase.slice(-2));
+        let sliceLocation = -3;
+        if(exponent >= 10) sliceLocation --; //increases the amount of string sliced when exponent becomes 2 chars
+        intervalBase = intervalBase.replace(intervalBase.slice(sliceLocation), "x10" + interval.text.exponents[exponent - 5]) //converts from exponent string format to scientific notation eg. 12e+3 => 12x10³
         intervalBaseLen = Math.sign(gridInterval) == -1 ? intervalBase.length - 1 : intervalBase.length
         if(intervalBaseLen >= 10) {
             return;
@@ -305,10 +308,10 @@ window.addEventListener('wheel', (e) => {
     let posX = e.pageX; //browser's x pixels
     let posY = e.pageY; //browser's y pixels
     let oldHoverCoordinates = calculateCoordinatesFromPx(posX, posY);
-    if (e.deltaY == 100 && interval.exponent < 11) { //deltaY = 100 if mouseWheelUp; max exponent of 10
+    if (e.deltaY == 100 && interval.exponent != 11) { //deltaY = 100 if mouseWheelUp; max exponent of 10
         coordinates.z.fraction++;
         initZoomEvent(oldHoverCoordinates, posX, posY);
-    } else if (e.deltaY == -100 && interval.exponent > -6) { //deltaY = -100 if mouseWheelDown; min exponent of -5
+    } else if (e.deltaY == -100 && interval.exponent != -5) { //deltaY = -100 if mouseWheelDown; min exponent of -5
         coordinates.z.fraction--;
         initZoomEvent(oldHoverCoordinates, posX, posY)
     }
@@ -369,8 +372,13 @@ function calculateIntervalBase() {
 function calculateIntervalExponent(remainder) {
     var defaultZDifference = coordinates.z.base - coordinates.z.initialBase - remainder; //remainder is minused to "round" to the 1st factor of 3 below the current base.
     var exponent = defaultZDifference / 3;
-    interval.exponent = exponent;
-    interval.tenthExponent = 10 ** exponent;
+    if(exponent <= 1) {
+        interval.exponent = exponent.round(Math.abs(interval.exponent));
+        interval.tenthExponent = (10 ** exponent).round(Math.abs(interval.exponent));
+    } else {
+        interval.exponent = exponent;
+        interval.tenthExponent = 10 ** exponent
+    }   
 }
 
 function setCanvasDimensions() {
