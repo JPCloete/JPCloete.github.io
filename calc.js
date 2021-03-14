@@ -1,5 +1,5 @@
 var coordinates = {
-    x: 0,
+    x: 1400000000000,
     y: 0,
     z: {
         initialBase: 15, 
@@ -19,7 +19,7 @@ var interval = {
     count: {
         initialValue: 10,
         xValue: 0, //derived from initialValue + zFraction * rateOfChange
-        yValue: 0, // y's value is derived from x's value, therefore initial y.value is 0
+        yValue: 0, //y's value is derived from x's value, therefore initial y.value is 0
     },
     text: {
         x0pxCoordinate: 0, //this value is 0 when x's 0 value is not in view range
@@ -146,7 +146,6 @@ window.addEventListener('resize', () => {
 });
 
 function renderGrid() {
-    console.log(coordinates.x)
     gridSetUp();
     const gridInterval = interval.base * interval.tenthExponent;
     const xOffset = roundToInterval(coordinates.x, gridInterval);
@@ -164,7 +163,7 @@ function renderGrid() {
     coordinateRefArr.push(yCoordinateRef[1]);
     coordinateRefArr.push(yCoordinateRef[1]);
     var dupCoordinateRefArr = coordinateRefArr.slice(); //creates duplicate coordinateRefArr instance
-    //handles text rendering details
+    //handles if text renders on the x=0/y=0 axis or on screen sides
     var x0pxCoordinate = calculatePxFromCoordinates(0, coordinates.y);
     var y0pxCoordinate = calculatePxFromCoordinates(coordinates.x, 0);
     interval.text.x0pxCoordinate = x0pxCoordinate[0] != null ? x0pxCoordinate[0] : 0;
