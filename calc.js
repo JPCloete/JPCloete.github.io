@@ -1,5 +1,5 @@
 var coordinates = {
-    x: 1400000000000,
+    x: 0,
     y: 0,
     z: {
         initialBase: 15, 
@@ -16,6 +16,11 @@ var interval = {
     base: 1,
     tenthExponent: 1,
     exponent: 0,
+    pxPerUnit: 0,
+    dynamicZLimit: {
+        minExponent: -5, //The maxinum amount that can be zoomed in, values become 
+        xThreshold: 700000000
+    },
     count: {
         initialValue: 10,
         xValue: 0, //derived from initialValue + zFraction * rateOfChange
@@ -27,8 +32,7 @@ var interval = {
         fontSize: 0,
         offSet: 0,
         exponents: ["⁵", "⁶", "⁷", "⁸", "⁹", "¹⁰", "¹¹", "¹²", "¹³"]
-    },
-    pxPerUnit: 0
+    }
 }
 
 
@@ -155,13 +159,12 @@ function renderGrid() {
     var i = 0;
     var j = 1;
     var coordinateRefArr = [];
-    var xCoordinateRef = calculatePxFromCoordinates(xOffset, coordinates.y);
-    var yCoordinateRef = calculatePxFromCoordinates(coordinates.x, yOffset);
-    const coordinatePxDifference = xCoordinateRef[0] - calculatePxFromCoordinates(xOffset - gridInterval, coordinates.y)[0]; //calculates distance in px between each axis
-    coordinateRefArr.push(xCoordinateRef[0]);
-    coordinateRefArr.push(xCoordinateRef[0]);
-    coordinateRefArr.push(yCoordinateRef[1]);
-    coordinateRefArr.push(yCoordinateRef[1]);
+    var coordinateRef = calculatePxFromCoordinates(xOffset, yOffset);
+    const coordinatePxDifference = coordinateRef[0] - calculatePxFromCoordinates(xOffset - gridInterval, coordinates.y)[0]; //calculates distance in px between each axis
+    coordinateRefArr.push(coordinateRef[0]);
+    coordinateRefArr.push(coordinateRef[0]);
+    coordinateRefArr.push(coordinateRef[1]);
+    coordinateRefArr.push(coordinateRef[1]);
     var dupCoordinateRefArr = coordinateRefArr.slice(); //creates duplicate coordinateRefArr instance
     //handles if text renders on the x=0/y=0 axis or on screen sides
     var x0pxCoordinate = calculatePxFromCoordinates(0, coordinates.y);
@@ -307,10 +310,19 @@ window.addEventListener('wheel', (e) => {
     let posX = e.pageX; //browser's x pixels
     let posY = e.pageY; //browser's y pixels
     let oldHoverCoordinates = calculateCoordinatesFromPx(posX, posY);
+    let absX = Math.abs(coordinates.x);
+    let absY = Math.abs(coordinates.y);
+    if(absX >= interval.dynamicZLimit.xThreshold && absX > absY) { 
+        let xThresholdDivided = absX / interval.dynamicZLimit.xThreshold;
+        interval.dynamicZLimit.minExponent = Math.floor(Math.log10(xThresholdDivided)) - 3; //used to scale minExponent based on how large coordinate.x is. Prevents inaccuracy with floats when values become to large
+    }else if(absY >= interval.dynamicZLimit.xThreshold) {
+        let xThresholdDivided = absY / interval.dynamicZLimit.xThreshold;
+        interval.dynamicZLimit.minExponent = Math.floor(Math.log10(xThresholdDivided)) - 3; //used to scale minExponent based on how large coordinate.y is. Prevents inaccuracy with floats when values become to large
+    }
     if (e.deltaY == 100 && interval.exponent != 11) { //deltaY = 100 if mouseWheelUp; max exponent of 10
         coordinates.z.fraction++;
         initZoomEvent(oldHoverCoordinates, posX, posY);
-    } else if (e.deltaY == -100 && interval.exponent != -5) { //deltaY = -100 if mouseWheelDown; min exponent of -5
+    } else if (e.deltaY == -100 && interval.exponent != interval.dynamicZLimit.minExponent) { //deltaY = -100 if mouseWheelDown; min exponent of -5
         coordinates.z.fraction--;
         initZoomEvent(oldHoverCoordinates, posX, posY)
     }
@@ -418,4 +430,5 @@ function roundToInterval(num, interval) {
 
 Number.prototype.round = function(places) {
     return +(Math.round(this + "e+" + places)  + "e-" + places);
-  }
+}
+
